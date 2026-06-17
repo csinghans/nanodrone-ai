@@ -34,6 +34,21 @@ CI 會檢查每個 `docs/en/*.md` 都有對應的 `docs/zh-TW/*.md`。
 4. **驗收** — 具體、可觀察的成功條件。
 5. **延伸閱讀** — 選讀連結與挑戰。
 
+## 新增一課
+
+先用 scaffold 生骨架再填內容 —— 讓每一課保持一致、CI 保持綠燈：
+
+1. `python tools/new_lesson.py NN slug "Title"` —— 生出課程資料夾（含可跑的懸停骨架）、雙語 README、兩語 docs 頁。
+2. 在 `lessons/NN_slug/<slug>.py` 實作課程（保持 `--headless` 可用，CI 才能煙霧測試）。
+3. 填雙語五段式 README（英文先、繁中跟進）。
+4. 填 `docs/en/NN-slug.md` 與 `docs/zh-TW/NN-slug.md`。
+5. 貼上 scaffold 印出的三個片段：
+   - `mkdocs.yml` 的 `nav:` 一列，
+   - **兩個** README（`README.md` 與 `README.zh-TW.md`）的學習路線列，
+   - `.github/workflows/ci.yml` smoke job 一步（若可 headless 跑）。
+6. 本機驗證：`ruff check . && black --check .`、`mkdocs build --strict`、`python lessons/NN_slug/<slug>.py --headless`。
+7. commit / push；觸發 CI 確認 lint + docs-parity + smoke 全綠。
+
 ## 程式風格
 
 - Python：用 `black` 格式化、`ruff` lint。命名清楚優先於炫技。

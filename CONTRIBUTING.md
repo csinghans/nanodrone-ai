@@ -34,6 +34,24 @@ Keep the five-part shape so the course stays predictable for beginners:
 4. **Checkpoint** — a concrete, observable success condition.
 5. **Going further** — optional links and challenges.
 
+## Adding a lesson
+
+Scaffold first, then fill it in — this keeps every lesson consistent and CI green:
+
+1. `python tools/new_lesson.py NN slug "Title"` — creates the lesson folder (with
+   a runnable hover skeleton), a bilingual README, and both docs pages.
+2. Implement the lesson in `lessons/NN_slug/<slug>.py` (keep `--headless` working
+   so CI can smoke-test it).
+3. Fill the five-part bilingual README (English first, then `zh-TW`).
+4. Fill `docs/en/NN-slug.md` and `docs/zh-TW/NN-slug.md`.
+5. Paste the three snippets the scaffold prints:
+   - the `nav:` entry in `mkdocs.yml`,
+   - a learning-path row in **both** `README.md` and `README.zh-TW.md`,
+   - a smoke step in `.github/workflows/ci.yml` (if it runs headless).
+6. Verify locally: `ruff check . && black --check .`, `mkdocs build --strict`,
+   and `python lessons/NN_slug/<slug>.py --headless`.
+7. Commit & push; trigger CI and confirm lint + docs-parity + smoke are green.
+
 ## Code style
 
 - Python: format with `black`, lint with `ruff`. Prefer clear names over clever ones.
