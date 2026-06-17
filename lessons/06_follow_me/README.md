@@ -36,9 +36,10 @@ python lessons/06_follow_me/follow_me.py            # opens a window
 python lessons/06_follow_me/follow_me.py --headless # no window (CI / verify)
 ```
 
-Read [`follow_me.py`](follow_me.py): `detect_target()` is Lesson 2's idea reused;
-`target_world_from_detection()` is the geometry that turns a pixel + depth into a
-world point; the standoff line is the whole "follow" rule.
+Read [`follow_me.py`](follow_me.py): `detect_blob()` (from the shared `nanodrone`
+core — the detector first written in Lesson 2) finds the target, `world_point()`
+turns its bearing + depth into a world point, and the standoff line is the whole
+"follow" rule.
 
 ## Checkpoint ✅
 
@@ -91,7 +92,7 @@ python lessons/06_follow_me/follow_me.py            # 開視窗
 python lessons/06_follow_me/follow_me.py --headless # 不開視窗（CI / 驗證）
 ```
 
-請讀 [`follow_me.py`](follow_me.py)：`detect_target()` 沿用 Lesson 2 的作法；`target_world_from_detection()` 是把「像素 + 深度」換成世界座標的幾何；尾隨點那條線就是整個「跟隨」規則。
+請讀 [`follow_me.py`](follow_me.py)：`detect_blob()`（來自共用核心 `nanodrone`，就是 Lesson 2 最早手寫的偵測器）找出目標，`world_point()` 把方位 + 深度換成世界座標，尾隨點那條線就是整個「跟隨」規則。
 
 ## 驗收 ✅
 

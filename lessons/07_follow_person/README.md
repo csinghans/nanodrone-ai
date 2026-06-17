@@ -16,7 +16,8 @@ one loop, with almost no new ideas.
 Two agents share the simulator:
 
 - **The person** — a little orange figure you drive with the gamepad or keyboard
-  (the input backends are imported straight from Lesson 5).
+  (the input backends come from the shared `nanodrone` core, first written in
+  Lesson 5).
 - **The drone** — fully autonomous. Each perception tick it detects the orange
   person (HSV, like Lesson 2), finds your distance from the depth image, and
   computes your **world position** from its own pose. Then it:
@@ -43,16 +44,16 @@ the camera is a chase cam with the side panels hidden. For a bigger view,
 maximize the window (on macOS: green button → *Enter Full Screen*, or double-
 click the title bar).
 
-Read [`follow_person.py`](follow_person.py): `detect_person()` is the Lesson 2
-detector, and the `theta = drone_yaw - bearing` line is the whole "turn to face
-you" trick.
+Read [`follow_person.py`](follow_person.py): `detect_blob()` and `world_point()`
+come from the shared `nanodrone` core; the `theta` returned by `world_point()`
+is the heading the drone yaws to — the whole "turn to face you" trick.
 
 ## Checkpoint ✅
 
 Headless walks the person in a circle and prints (verified on this machine):
 
 ```
-FOLLOW OK: tracked 71 frames while the person circled, mean bearing error 1.5 deg.
+FOLLOW OK: tracked 71 frames while the person circled, mean bearing error 1.6 deg.
 ```
 
 A bearing error of ~1° means the drone kept you almost perfectly centred the
@@ -81,7 +82,7 @@ and trail you.
 
 模擬器裡有兩個角色：
 
-- **人** —— 一個橘色小人，你用手把或鍵盤驅動（輸入後端直接從 Lesson 5 import 過來）。
+- **人** —— 一個橘色小人，你用手把或鍵盤驅動（輸入後端來自共用核心 `nanodrone`，最早寫於 Lesson 5）。
 - **無人機** —— 完全自主。每個感知 tick 偵測橘色的人（HSV，與 Lesson 2 相同）、從深度影像得到距離、由自己的姿態算出你的**世界座標**，然後：
   - **轉機頭面向你**（讓相機持續把你保持在中央 —— 這是相對 Lesson 6 新增的部分，也正是能跟著你「繞圈」而非只左右移動的關鍵），以及
   - 飛到你後方 `DESIRED_DIST` 的尾隨點。
@@ -99,14 +100,14 @@ python lessons/07_follow_person/follow_person.py --headless # 腳本化 demo（C
 
 用右搖桿（或方向鍵）驅動**人**；無人機自己跟。橘色小人有一個深色**「臉」**標記顯示朝向；鏡頭是跟拍鏡頭、側邊面板已隱藏。想要更大畫面就最大化視窗（macOS：綠色按鈕 →「進入全螢幕」，或雙擊標題列）。
 
-請讀 [`follow_person.py`](follow_person.py)：`detect_person()` 就是 Lesson 2 的偵測器，而 `theta = drone_yaw - bearing` 那行就是整個「轉向面對你」的訣竅。
+請讀 [`follow_person.py`](follow_person.py)：`detect_blob()` 與 `world_point()` 來自共用核心 `nanodrone`；`world_point()` 回傳的 `theta` 就是無人機要轉去面對的方向 —— 整個「轉向面對你」的訣竅。
 
 ## 驗收 ✅
 
 headless 會讓人走一圈並印出（本機實測）：
 
 ```
-FOLLOW OK: tracked 71 frames while the person circled, mean bearing error 1.5 deg.
+FOLLOW OK: tracked 71 frames while the person circled, mean bearing error 1.6 deg.
 ```
 
 方位誤差約 1° 代表無人機整圈幾乎把你完美保持在中央。在 GUI 裡，把人往任何方向開，看無人機轉身尾隨。

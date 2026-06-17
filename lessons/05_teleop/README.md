@@ -49,9 +49,10 @@ python lessons/05_teleop/teleop_xbox.py --list
 | yaw (turn heading) | left stick ↔ | Q / E |
 | quit | Ctrl-C | Ctrl-C |
 
-Read [`teleop_xbox.py`](teleop_xbox.py): the three input backends (`xbox`,
-`keyboard`, `selftest`) all feed the same flight loop. The default Xbox axis
-indices follow SDL2 (LX0/LY1/RX2/RY3); use `--list` if yours differ.
+Read [`teleop_xbox.py`](teleop_xbox.py) for the flight loop; the input backends
+(`xbox` / `keyboard` / `selftest`) live in the shared `nanodrone.input`. The
+default Xbox axis indices follow SDL2 (LX0/LY1/RX2/RY3); use `--list` if yours
+differ.
 
 ## Checkpoint ✅
 
@@ -122,7 +123,7 @@ python lessons/05_teleop/teleop_xbox.py --list
 | yaw（轉機頭） | 左搖桿 ↔ | Q / E |
 | 離開 | Ctrl-C | Ctrl-C |
 
-請讀 [`teleop_xbox.py`](teleop_xbox.py)：三種輸入後端（`xbox`／`keyboard`／`selftest`）共用同一個飛行迴圈。Xbox 預設軸索引依 SDL2（LX0/LY1/RX2/RY3）；不同的話用 `--list` 校準。
+請讀 [`teleop_xbox.py`](teleop_xbox.py) 看飛行迴圈；三種輸入後端（`xbox`／`keyboard`／`selftest`）放在共用核心 `nanodrone.input`。Xbox 預設軸索引依 SDL2（LX0/LY1/RX2/RY3）；不同的話用 `--list` 校準。
 
 ## 驗收 ✅
 
