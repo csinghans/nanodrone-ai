@@ -32,3 +32,7 @@ plugins:
 nav:
   - Home: index.md
   - Overview: 00-overview.md
+  - "Lesson 1 — Flight control": 01-flight-control.md
+  - "Lesson 2 — Perception": 02-perception.md
+  - "Lesson 3 — Autonomy AI": 03-autonomy-ai.md
+  - "Lesson 4 — Hardware": 04-hardware.md

@@ -4,7 +4,12 @@ A beginner-friendly, bilingual course on **on-device AI autonomy for nano-drones
 start in simulation for free, graduate to a real Crazyflie that flies itself offline.
 
 - New here? Start with the [Overview](00-overview.md).
-- Then work through the lessons in the [`lessons/`](https://github.com/csinghans/nanodrone-ai/tree/main/lessons) folder.
+- Then work through the lessons (use the nav, or the [`lessons/`](https://github.com/csinghans/nanodrone-ai/tree/main/lessons) folder).
+
+![hover](https://raw.githubusercontent.com/csinghans/nanodrone-ai/main/assets/hover.gif)
+![avoid](https://raw.githubusercontent.com/csinghans/nanodrone-ai/main/assets/avoid.gif)
+
+*Left: a simulated hover (Lesson 1). Right: the RL policy flying around an obstacle (Lesson 3). All produced for free in simulation.*
 
 | Lesson | Topic | Cost |
 |--------|-------|------|

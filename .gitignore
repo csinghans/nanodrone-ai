@@ -24,13 +24,15 @@ results/
 checkpoints/
 wandb/
 
-# Simulation recordings
-*.mp4
-*.gif
+# Simulation recordings (curated demo media in assets/ IS committed)
 recording*/
+*.mp4
 
 # Lesson script outputs (generated images, etc.)
 **/output/
+
+# Temporary peek frames from tools/render_media.py
+assets/_peek_*.png
 
 # OS / editor
 .DS_Store

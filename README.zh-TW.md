@@ -18,6 +18,15 @@
 
 **適合誰？** 完全新手。每一課都會解釋「**為什麼**」，而不只是「怎麼做」。
 
+## 實際成果
+
+全部在 Mac 上用模擬器免費產生：
+
+| Lesson 1 — 懸停 | Lesson 2 — 感知 | Lesson 3 — RL 避障 |
+|:---:|:---:|:---:|
+| ![hover](assets/hover.gif) | ![detection](assets/detection.png) | ![avoid](assets/avoid.gif) |
+| 穩定懸停在 1 公尺 | 找到障礙物（距離 + 方位） | 學會**繞過**柱子 |
+
 ## 核心觀念：雙層架構（AI 永遠不直接控馬達）
 
 ```

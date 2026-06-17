@@ -18,6 +18,27 @@ jobs:
       - run: ruff check .
       - run: black --check .
 
+  smoke:
+    name: Lesson smoke test (headless sim)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install simulation deps
+        # On Linux, pybullet has a prebuilt wheel (no compile). Lessons 1-2 only
+        # need the simulator + OpenCV -- no torch / stable-baselines3.
+        run: |
+          pip install numpy pybullet "gymnasium>=0.29" opencv-python-headless \
+            transforms3d pillow matplotlib scipy "control>=0.10.2,<0.11"
+          pip install --no-deps \
+            "gym-pybullet-drones @ git+https://github.com/utiasDSL/gym-pybullet-drones.git"
+      - name: Lesson 1 — hover (headless)
+        run: python lessons/01_hover/hover_demo.py --headless
+      - name: Lesson 2 — perception (headless)
+        run: python lessons/02_perception/perception_demo.py --headless
+
   docs-parity:
     name: Bilingual docs parity (en <-> zh-TW)
     runs-on: ubuntu-latest
