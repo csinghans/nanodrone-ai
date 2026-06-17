@@ -29,6 +29,9 @@ wandb/
 *.gif
 recording*/
 
+# Lesson script outputs (generated images, etc.)
+**/output/
+
 # OS / editor
 .DS_Store
 .idea/
