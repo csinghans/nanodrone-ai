@@ -56,6 +56,7 @@ The **flight controller** keeps the drone from falling out of the sky (a hard re
 | **5** *(bonus)* | Fly it yourself (Xbox controller) | $0 | Teleoperate the sim drone with a gamepad |
 | **6** | Follow-me tracking (visual servoing) | $0 | A drone that follows a moving target by camera |
 | **7** | Follow the pilot | $0 | Drive a person; the drone follows & yaws to face you |
+| **8** | Follow a real person (CNN) | $0 | A *trained* detector follows a person no colour rule can find |
 
 Each lesson follows the same five-part shape: **Why → Concept → Hands-on → Checkpoint → Going further.**
 

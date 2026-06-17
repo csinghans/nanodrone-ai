@@ -46,6 +46,8 @@ jobs:
         run: python lessons/06_follow_me/follow_me.py --headless
       - name: Lesson 7 — follow the pilot (headless)
         run: python lessons/07_follow_person/follow_person.py --headless
+      - name: Lesson 8 — person dataset gen (headless; training is manual)
+        run: python lessons/08_follow_real/gen_person_dataset.py --samples 60
 
   docs-parity:
     name: Bilingual docs parity (en <-> zh-TW)
