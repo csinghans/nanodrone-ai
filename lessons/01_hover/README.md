@@ -2,6 +2,8 @@
 
 🌐 **English** (below) · [跳到繁體中文](#中文)
 
+![Lesson 1 demo](../../assets/lesson1.gif)
+
 ---
 
 ## Why

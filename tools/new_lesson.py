@@ -79,6 +79,8 @@ README_TEMPLATE = """\
 
 🌐 **English** (below) · [跳到繁體中文](#中文)
 
+![Lesson %%NN%% demo](../../assets/lesson%%NN%%.gif)
+
 ---
 
 ## Why
@@ -251,6 +253,10 @@ def main() -> None:
         "3) .github/workflows/ci.yml -> in the `smoke` job (if headless-runnable):\n"
         f"      - name: Lesson {nn} — {slug} (headless)\n"
         f"        run: python lessons/{lesson_dir}/{slug}.py --headless\n"
+    )
+    print(
+        f"4) tools/render_media.py -> add a render function that saves\n"
+        f"     assets/lesson{nn}.gif (the README already embeds it).\n"
     )
     print("Then: fill the TODOs, `ruff check . && black . && mkdocs build --strict`.")
 

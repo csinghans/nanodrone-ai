@@ -6,8 +6,8 @@
 - 第一次來？先看[總覽](00-overview.md)。
 - 接著依序完成各課（用上方導覽，或看 [`lessons/`](https://github.com/csinghans/nanodrone-ai/tree/main/lessons) 資料夾）。
 
-![hover](https://raw.githubusercontent.com/csinghans/nanodrone-ai/main/assets/hover.gif)
-![avoid](https://raw.githubusercontent.com/csinghans/nanodrone-ai/main/assets/avoid.gif)
+![hover](https://raw.githubusercontent.com/csinghans/nanodrone-ai/main/assets/lesson1.gif)
+![avoid](https://raw.githubusercontent.com/csinghans/nanodrone-ai/main/assets/lesson3.gif)
 
 *左：模擬懸停（Lesson 1）。右：RL 策略繞過障礙（Lesson 3）。全部在模擬器免費產生。*
 

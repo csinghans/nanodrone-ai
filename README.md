@@ -24,7 +24,7 @@ All produced in simulation on a Mac, for free:
 
 | Lesson 1 — hover | Lesson 2 — perception | Lesson 3 — RL avoidance |
 |:---:|:---:|:---:|
-| ![hover](assets/hover.gif) | ![detection](assets/detection.png) | ![avoid](assets/avoid.gif) |
+| ![hover](assets/lesson1.gif) | ![detection](assets/lesson2.gif) | ![avoid](assets/lesson3.gif) |
 | holds a 1 m hover | finds the obstacle (distance + bearing) | learns to fly *around* the pillar |
 
 ## The big idea: two layers (the AI never drives the motors directly)
