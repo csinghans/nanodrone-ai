@@ -168,6 +168,9 @@ def fly(kind: str) -> None:
         pyb_freq=240,
         ctrl_freq=48,
         gui=gui,
+        # No manual RPM sliders: we steer with the gamepad, and the slider reads
+        # crash with "Failed to read parameter" the moment the window is closed.
+        user_debug_gui=False,
     )
     ctrl = DSLPIDControl(drone_model=DroneModel.CF2X)
     target = START.copy()
@@ -197,6 +200,8 @@ def fly(kind: str) -> None:
                 break  # selftest script finished
     except KeyboardInterrupt:
         print("\nLanding (you quit).")
+    except p.error:
+        print("\nSimulator window closed — stopping.")
 
     backend.close()
     env.close()
