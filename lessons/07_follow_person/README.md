@@ -38,9 +38,14 @@ python lessons/07_follow_person/follow_person.py --headless # scripted demo (CI/
 ```
 
 Drive the **person** with the right stick (or arrow keys); the drone follows
-itself. Read [`follow_person.py`](follow_person.py): `detect_person()` is the
-Lesson 2 detector, and the `theta = drone_yaw - bearing` line is the whole
-"turn to face you" trick.
+itself. The person has a dark **"face"** marker showing which way they walk, and
+the camera is a chase cam with the side panels hidden. For a bigger view,
+maximize the window (on macOS: green button → *Enter Full Screen*, or double-
+click the title bar).
+
+Read [`follow_person.py`](follow_person.py): `detect_person()` is the Lesson 2
+detector, and the `theta = drone_yaw - bearing` line is the whole "turn to face
+you" trick.
 
 ## Checkpoint ✅
 
@@ -92,7 +97,9 @@ python lessons/07_follow_person/follow_person.py            # 你操控、無人
 python lessons/07_follow_person/follow_person.py --headless # 腳本化 demo（CI/驗證）
 ```
 
-用右搖桿（或方向鍵）驅動**人**；無人機自己跟。請讀 [`follow_person.py`](follow_person.py)：`detect_person()` 就是 Lesson 2 的偵測器，而 `theta = drone_yaw - bearing` 那行就是整個「轉向面對你」的訣竅。
+用右搖桿（或方向鍵）驅動**人**；無人機自己跟。橘色小人有一個深色**「臉」**標記顯示朝向；鏡頭是跟拍鏡頭、側邊面板已隱藏。想要更大畫面就最大化視窗（macOS：綠色按鈕 →「進入全螢幕」，或雙擊標題列）。
+
+請讀 [`follow_person.py`](follow_person.py)：`detect_person()` 就是 Lesson 2 的偵測器，而 `theta = drone_yaw - bearing` 那行就是整個「轉向面對你」的訣竅。
 
 ## 驗收 ✅
 

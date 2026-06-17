@@ -42,7 +42,9 @@ BOX_XY, BOX_Z = 3.0, (0.3, 2.5)
 
 
 def build_person(client: int):
-    """A minimal orange 'person' (torso + head) the camera can pick out."""
+    """A minimal orange 'person' (torso + head) plus a dark 'nose' marker that
+    shows which way they face. The nose is a different colour so it does not
+    confuse the orange detector."""
     orange = [1.0, 0.5, 0.0, 1.0]
     torso_vis = p.createVisualShape(
         p.GEOM_BOX,
@@ -53,23 +55,34 @@ def build_person(client: int):
     head_vis = p.createVisualShape(
         p.GEOM_SPHERE, radius=0.13, rgbaColor=orange, physicsClientId=client
     )
+    nose_vis = p.createVisualShape(
+        p.GEOM_BOX,
+        halfExtents=[0.07, 0.04, 0.04],
+        rgbaColor=[0.1, 0.15, 0.35, 1.0],  # dark blue "face"
+        physicsClientId=client,
+    )
     torso = p.createMultiBody(
         baseMass=0, baseVisualShapeIndex=torso_vis, physicsClientId=client
     )
     head = p.createMultiBody(
         baseMass=0, baseVisualShapeIndex=head_vis, physicsClientId=client
     )
-    return torso, head
+    nose = p.createMultiBody(
+        baseMass=0, baseVisualShapeIndex=nose_vis, physicsClientId=client
+    )
+    return torso, head, nose
 
 
-def move_person(ids, x: float, y: float, client: int) -> None:
-    torso, head = ids
-    p.resetBasePositionAndOrientation(
-        torso, [x, y, 0.42], [0, 0, 0, 1], physicsClientId=client
-    )
-    p.resetBasePositionAndOrientation(
-        head, [x, y, 0.87], [0, 0, 0, 1], physicsClientId=client
-    )
+def move_person(ids, x: float, y: float, heading: float, client: int) -> None:
+    """Place the person at (x, y) facing `heading` (radians, 0 = +x)."""
+    torso, head, nose = ids
+    quat = p.getQuaternionFromEuler([0, 0, heading])
+    p.resetBasePositionAndOrientation(torso, [x, y, 0.42], quat, physicsClientId=client)
+    p.resetBasePositionAndOrientation(head, [x, y, 0.87], quat, physicsClientId=client)
+    # The nose sits in front of the head, in the facing direction.
+    nx = x + 0.16 * math.cos(heading)
+    ny = y + 0.16 * math.sin(heading)
+    p.resetBasePositionAndOrientation(nose, [nx, ny, 0.9], quat, physicsClientId=client)
 
 
 def detect_person(rgb, dep, near, far):
@@ -98,6 +111,20 @@ def scripted_person_xy(t: float):
     return 1.5 + 1.0 * math.cos(0.3 * t), 1.0 * math.sin(0.3 * t)
 
 
+def setup_view(client: int) -> None:
+    """Make the GUI less bare: hide the side panels so the 3D view fills the
+    window, turn on shadows, and frame the scene nicely."""
+    p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0, physicsClientId=client)
+    p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 1, physicsClientId=client)
+    p.resetDebugVisualizerCamera(
+        cameraDistance=2.6,
+        cameraYaw=50,
+        cameraPitch=-32,
+        cameraTargetPosition=[1.0, 0.0, 0.8],
+        physicsClientId=client,
+    )
+
+
 def main(gui: bool = True) -> None:
     env = CtrlAviary(
         drone_model=DroneModel.CF2X,
@@ -114,11 +141,12 @@ def main(gui: bool = True) -> None:
     near, far = env.L, 1000.0
 
     person = build_person(env.CLIENT)
-    person_x, person_y = (2.5, 0.0)  # gui start; headless overrides via script
-    move_person(person, person_x, person_y, env.CLIENT)
+    person_x, person_y, person_heading = 2.5, 0.0, math.pi  # start facing the drone
+    move_person(person, person_x, person_y, person_heading, env.CLIENT)
 
     backend = None
     if gui:
+        setup_view(env.CLIENT)
         # Reuse Lesson 5's gamepad/keyboard input to drive the person.
         sys.path.insert(
             0, __file__.rsplit("/", 2)[0] + "/05_teleop"  # lessons/05_teleop
@@ -140,6 +168,7 @@ def main(gui: bool = True) -> None:
     try:
         while i < duration:
             t = i * dt
+            prev_x, prev_y = person_x, person_y
             if gui:
                 fwd, strafe, _up, _yaw = backend.read()  # world-frame person drive
                 person_x = float(
@@ -150,7 +179,10 @@ def main(gui: bool = True) -> None:
                 )
             else:
                 person_x, person_y = scripted_person_xy(t)
-            move_person(person, person_x, person_y, env.CLIENT)
+            dx, dy = person_x - prev_x, person_y - prev_y
+            if dx * dx + dy * dy > 1e-8:  # face the way you're walking
+                person_heading = math.atan2(dy, dx)
+            move_person(person, person_x, person_y, person_heading, env.CLIENT)
 
             obs, _, _, _, _ = env.step(action)
             state = obs[0]
@@ -185,6 +217,13 @@ def main(gui: bool = True) -> None:
                 target_rpy=np.array([0.0, 0.0, target_yaw]),
             )
             if gui:
+                p.resetDebugVisualizerCamera(  # chase cam follows the drone
+                    cameraDistance=2.6,
+                    cameraYaw=50,
+                    cameraPitch=-32,
+                    cameraTargetPosition=drone_pos,
+                    physicsClientId=env.CLIENT,
+                )
                 env.render()
                 sync(i, start_t, dt)
             i += 1
