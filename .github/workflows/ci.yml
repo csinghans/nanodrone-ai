@@ -43,6 +43,8 @@ jobs:
         run: python lessons/05_teleop/teleop_xbox.py --input selftest
       - name: Lesson 6 — follow-me (headless)
         run: python lessons/06_follow_me/follow_me.py --headless
+      - name: Lesson 7 — follow the pilot (headless)
+        run: python lessons/07_follow_person/follow_person.py --headless
 
   docs-parity:
     name: Bilingual docs parity (en <-> zh-TW)
