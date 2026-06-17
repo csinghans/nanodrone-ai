@@ -3,6 +3,11 @@
 # The docs are deployed to GitHub Pages by .github/workflows/docs.yml.
 site_name: nanodrone-ai
 site_description: A beginner's step-by-step course on on-device AI autonomy for nano-drones
+# site_url MUST include the /nanodrone-ai/ subpath: GitHub Pages serves this
+# project site from a subdirectory, and the language switcher builds its links
+# relative to site_url. Without the subpath, "switch language" jumps to the
+# domain root and 404s.
+site_url: https://csinghans.github.io/nanodrone-ai/
 repo_url: https://github.com/csinghans/nanodrone-ai
 docs_dir: docs
 
