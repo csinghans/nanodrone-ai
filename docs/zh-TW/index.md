@@ -11,16 +11,18 @@
 
 *左：模擬懸停（Lesson 1）。右：RL 策略繞過障礙（Lesson 3）。全部在模擬器免費產生。*
 
+<!-- LESSON-TABLE:START -->
 | 課程 | 主題 | 成本 |
 |------|------|------|
-| 0 | 環境建置與專案骨架 | $0 |
-| 1 | 飛行控制基礎 | $0 |
-| 2 | 感知 | $0 |
-| 3 | 自主決策 AI | $0 |
-| 4 | 真機 + 板載離線 AI | 約 US$545 |
-| 5 *(加成)* | 親手飛（Xbox 手把） | $0 |
-| 6 | 跟隨模式（視覺伺服） | $0 |
-| 7 | 跟著飛手（轉向尾隨） | $0 |
-| 8 | 跟隨真人（訓練 CNN） | $0 |
+| 0 | [環境建置與專案骨架](00-overview.md) | $0 |
+| 1 | [飛行控制基礎（懸停與航點）](01-hover.md) | $0 |
+| 2 | [感知（看見障礙物）](02-perception.md) | $0 |
+| 3 | [自主決策 AI](03-autonomy-ai.md) | $0 |
+| 4 | [真機與板載離線 AI](04-hardware-gap8.md) | 約 US$545 |
+| 5 *(加成)* | [用 Xbox 手把親手飛](05-teleop.md) | $0 |
+| 6 | [跟隨模式](06-follow-me.md) | $0 |
+| 7 | [跟著飛手](07-follow-person.md) | $0 |
+| 8 | [跟隨真人（學習式偵測器）](08-follow-real.md) | $0 |
+<!-- LESSON-TABLE:END -->
 
 > 🌐 Switch language: use the language selector at the top-right to switch to **English**.

@@ -39,7 +39,46 @@ def _strip_lang_lines(text: str) -> str:
     return "\n".join(ln for ln in text.splitlines() if "🌐" not in ln)
 
 
+# Lesson 0 is "setup" (no lesson folder); cost overrides keyed by number.
+SETUP = {"en": "Setup & project skeleton", "zh-TW": "環境建置與專案骨架"}
+COST = {"04": {"en": "~US$545", "zh-TW": "約 US$545"}}
+HEADER = {
+    "en": "| Lesson | Topic | Cost |\n|--------|-------|------|",
+    "zh-TW": "| 課程 | 主題 | 成本 |\n|------|------|------|",
+}
+BONUS = {"en": " *(bonus)*", "zh-TW": " *(加成)*"}
+
+
+def _title(section: str) -> str:
+    """Topic from an H1 like '# Lesson 6 — Follow-me tracking' -> after the dash."""
+    h1 = next((ln for ln in section.splitlines() if ln.startswith("# Lesson")), "")
+    return h1.split("—")[-1].strip() if "—" in h1 else h1.lstrip("# ").strip()
+
+
+def _inject_table(lang: str, rows: list) -> None:
+    body = [HEADER[lang]]
+    body.append(f"| 0 | [{SETUP[lang]}](00-overview.md) | $0 |")
+    for nn, docs_name, title, bonus in rows:
+        cost = COST.get(nn, {}).get(lang, "$0")
+        num = nn.lstrip("0") + (BONUS[lang] if bonus else "")
+        body.append(f"| {num} | [{title}]({docs_name}) | {cost} |")
+    table = "\n".join(body)
+    path = os.path.join(ROOT, "docs", lang, "index.md")
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    new = re.sub(
+        r"<!-- LESSON-TABLE:START -->.*?<!-- LESSON-TABLE:END -->",
+        f"<!-- LESSON-TABLE:START -->\n{table}\n<!-- LESSON-TABLE:END -->",
+        text,
+        flags=re.DOTALL,
+    )
+    with open(path, "w", encoding="utf-8") as f:
+        f.write(new)
+    print(f"  updated docs/{lang}/index.md table")
+
+
 def main() -> None:
+    rows_by_lang = {"en": [], "zh-TW": []}
     for readme in sorted(glob.glob(os.path.join(ROOT, "lessons", "*", "README.md"))):
         lesson_dir = os.path.basename(os.path.dirname(readme))  # e.g. 01_hover
         nn, slug = lesson_dir.split("_", 1)
@@ -64,6 +103,16 @@ def main() -> None:
             with open(out, "w", encoding="utf-8") as f:
                 f.write(rewrite_links(body, lesson_dir))
             print(f"  wrote docs/{sub}/{docs_name}")
+
+        # Only the H1 marks a bonus lesson (the word may appear in the body too).
+        en_h1 = next((x for x in en_raw.splitlines() if x.startswith("# Lesson")), "")
+        zh_h1 = next((x for x in zh_raw.splitlines() if x.startswith("# Lesson")), "")
+        bonus = "(bonus)" in en_h1.lower() or "加成" in zh_h1
+        rows_by_lang["en"].append((nn, docs_name, _title(en_raw), bonus))
+        rows_by_lang["zh-TW"].append((nn, docs_name, _title(zh_raw), bonus))
+
+    for lang in ("en", "zh-TW"):
+        _inject_table(lang, rows_by_lang[lang])
 
 
 if __name__ == "__main__":

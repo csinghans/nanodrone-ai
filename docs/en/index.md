@@ -11,16 +11,18 @@ start in simulation for free, graduate to a real Crazyflie that flies itself off
 
 *Left: a simulated hover (Lesson 1). Right: the RL policy flying around an obstacle (Lesson 3). All produced for free in simulation.*
 
+<!-- LESSON-TABLE:START -->
 | Lesson | Topic | Cost |
 |--------|-------|------|
-| 0 | Setup & project skeleton | $0 |
-| 1 | Flight control basics | $0 |
-| 2 | Perception | $0 |
-| 3 | Autonomous decision AI | $0 |
-| 4 | Real hardware + on-board offline AI | ~US$545 |
-| 5 *(bonus)* | Fly it yourself (Xbox controller) | $0 |
-| 6 | Follow-me tracking (visual servoing) | $0 |
-| 7 | Follow the pilot (yaw to face you) | $0 |
-| 8 | Follow a real person (trained CNN) | $0 |
+| 0 | [Setup & project skeleton](00-overview.md) | $0 |
+| 1 | [Flight control basics (hover & waypoints)](01-hover.md) | $0 |
+| 2 | [Perception (seeing an obstacle)](02-perception.md) | $0 |
+| 3 | [Autonomous decision AI](03-autonomy-ai.md) | $0 |
+| 4 | [Real hardware & on-board offline AI](04-hardware-gap8.md) | ~US$545 |
+| 5 *(bonus)* | [Fly it yourself with an Xbox controller](05-teleop.md) | $0 |
+| 6 | [Follow-me tracking](06-follow-me.md) | $0 |
+| 7 | [Follow the pilot](07-follow-person.md) | $0 |
+| 8 | [Follow a real person (learned detector)](08-follow-real.md) | $0 |
+<!-- LESSON-TABLE:END -->
 
 > 🌐 切換語言：右上角語言選單可切到**繁體中文**。
