@@ -1,0 +1,5 @@
+# Extra packages for Lesson 5 (bonus, gamepad teleop) only.
+# NOT needed for the core simulation lessons (0-4).
+#   conda activate nanodrone-ai
+#   pip install -r setup/requirements-extra.txt
+pygame        # read the Xbox/SDL gamepad

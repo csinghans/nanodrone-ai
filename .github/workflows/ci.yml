@@ -39,6 +39,8 @@ jobs:
         run: python lessons/01_hover/hover_demo.py --headless
       - name: Lesson 2 — perception (headless)
         run: python lessons/02_perception/perception_demo.py --headless
+      - name: Lesson 5 — teleop flight loop (selftest, no pad/GUI)
+        run: python lessons/05_teleop/teleop_xbox.py --input selftest
 
   docs-parity:
     name: Bilingual docs parity (en <-> zh-TW)
