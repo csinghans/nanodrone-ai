@@ -30,7 +30,7 @@ jobs:
         # On Linux, pybullet has a prebuilt wheel (no compile). Lessons 1-2 only
         # need the simulator + OpenCV -- no torch / stable-baselines3.
         run: |
-          pip install numpy pybullet "gymnasium>=0.29" opencv-python-headless \
+          pip install setuptools numpy pybullet "gymnasium>=0.29" opencv-python-headless \
             transforms3d pillow matplotlib scipy "control>=0.10.2,<0.11"
           pip install --no-deps \
             "gym-pybullet-drones @ git+https://github.com/utiasDSL/gym-pybullet-drones.git"
