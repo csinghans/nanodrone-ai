@@ -54,6 +54,7 @@ The **flight controller** keeps the drone from falling out of the sky (a hard re
 | **3** | Autonomous decision AI | $0 | A drone that avoids obstacles using *only* a neural net |
 | **4** | Real hardware + on-board offline AI | ~US$545 | A Crazyflie flying itself with the laptop unplugged |
 | **5** *(bonus)* | Fly it yourself (Xbox controller) | $0 | Teleoperate the sim drone with a gamepad |
+| **6** | Follow-me tracking (visual servoing) | $0 | A drone that follows a moving target by camera |
 
 Each lesson follows the same five-part shape: **Why → Concept → Hands-on → Checkpoint → Going further.**
 
