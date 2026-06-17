@@ -26,6 +26,9 @@ echo "==> Installing gym-pybullet-drones (--no-deps) ..."
 conda run -n nanodrone-ai pip install --no-deps \
   "gym-pybullet-drones @ git+https://github.com/utiasDSL/gym-pybullet-drones.git"
 
+echo "==> Installing the shared 'nanodrone' core (editable) ..."
+conda run -n nanodrone-ai pip install -e "${REPO_ROOT}"
+
 echo ""
 echo "==> Done. Next:"
 echo "    conda activate nanodrone-ai"

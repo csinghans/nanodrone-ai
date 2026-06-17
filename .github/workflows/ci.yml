@@ -35,6 +35,7 @@ jobs:
             transforms3d pillow matplotlib scipy "control>=0.10.2,<0.11"
           pip install --no-deps \
             "gym-pybullet-drones @ git+https://github.com/utiasDSL/gym-pybullet-drones.git"
+          pip install -e .   # the shared 'nanodrone' core that lessons import
       - name: Lesson 1 — hover (headless)
         run: python lessons/01_hover/hover_demo.py --headless
       - name: Lesson 2 — perception (headless)

@@ -52,6 +52,11 @@ Scaffold first, then fill it in — this keeps every lesson consistent and CI gr
    and `python lessons/NN_slug/<slug>.py --headless`.
 7. Commit & push; trigger CI and confirm lint + docs-parity + smoke are green.
 
+Reuse the shared **`nanodrone`** core instead of copying — it has the colour
+detector + pixel-to-world geometry (`detect_blob`, `world_point`), the gamepad/
+keyboard backends (`make_input`), and the GUI look (`setup_view`, `chase_cam`).
+`import nanodrone` works because the env installs it editable (`pip install -e .`).
+
 ## Code style
 
 - Python: format with `black`, lint with `ruff`. Prefer clear names over clever ones.

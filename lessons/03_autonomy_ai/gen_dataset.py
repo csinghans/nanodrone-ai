@@ -18,7 +18,6 @@ Usage:  python gen_dataset.py --samples 500
 """
 
 import argparse
-import math
 import os
 import sys
 
@@ -29,33 +28,12 @@ from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
 from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
 
+from nanodrone import RED, detect_blob  # the Lesson 2 detector, factored out
+
 HOVER_POS = np.array([0.0, 0.0, 1.0])
 IMG_W, IMG_H = 160, 160
 NET_RES = 64  # the CNN input size (downscaled)
-CAMERA_FOV_DEG = 60.0
 OUT = os.path.join(os.path.dirname(__file__), "output", "imitation_dataset.npz")
-
-
-def detect_bearing(rgb: np.ndarray):
-    """Lesson 2's detector, reused as the 'teacher'. Returns bearing in degrees
-    (or None if the red obstacle isn't visible)."""
-    bgr = cv2.cvtColor(rgb[:, :, :3].astype(np.uint8), cv2.COLOR_RGB2BGR)
-    hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
-    mask = cv2.bitwise_or(
-        cv2.inRange(hsv, (0, 120, 80), (10, 255, 255)),
-        cv2.inRange(hsv, (170, 120, 80), (180, 255, 255)),
-    )
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not contours:
-        return None
-    blob = max(contours, key=cv2.contourArea)
-    if cv2.contourArea(blob) < 30:
-        return None
-    m = cv2.moments(blob)
-    cx = m["m10"] / m["m00"]
-    half_fov = math.radians(CAMERA_FOV_DEG / 2)
-    norm_x = (2.0 * cx / rgb.shape[1]) - 1.0
-    return math.degrees(math.atan(norm_x * math.tan(half_fov)))
 
 
 def main() -> None:
@@ -74,6 +52,7 @@ def main() -> None:
     )
     env.IMG_RES = np.array([IMG_W, IMG_H])
     ctrl = DSLPIDControl(drone_model=DroneModel.CF2X)
+    near, far = env.L, 1000.0
 
     # One red box we reposition each sample.
     half = [0.18, 0.18, 0.18]
@@ -109,13 +88,13 @@ def main() -> None:
             action[0, :], _, _ = ctrl.computeControlFromState(
                 control_timestep=env.CTRL_TIMESTEP, state=obs[0], target_pos=HOVER_POS
             )
-        rgb, _dep, _seg = env._getDroneImages(0, segmentation=False)
-        bearing = detect_bearing(rgb)
-        if bearing is None:
+        rgb, dep, _seg = env._getDroneImages(0, segmentation=False)
+        blob = detect_blob(rgb, dep, RED, near, far, min_area=30)  # teacher label
+        if not blob.found:
             continue  # obstacle drifted out of view -> skip
         small = cv2.resize(rgb[:, :, :3].astype(np.uint8), (NET_RES, NET_RES))
         images.append(small.astype(np.float32) / 255.0)
-        labels.append(bearing)
+        labels.append(blob.bearing)
         if len(images) % 100 == 0:
             print(f"  collected {len(images)}/{args.samples}")
 

@@ -49,6 +49,11 @@ CI 會檢查每個 `docs/en/*.md` 都有對應的 `docs/zh-TW/*.md`。
 6. 本機驗證：`ruff check . && black --check .`、`mkdocs build --strict`、`python lessons/NN_slug/<slug>.py --headless`。
 7. commit / push；觸發 CI 確認 lint + docs-parity + smoke 全綠。
 
+優先**重用 `nanodrone` 共用核心**而非複製 —— 裡面有色彩偵測 + 像素轉世界座標
+（`detect_blob`、`world_point`）、手把/鍵盤後端（`make_input`）、GUI 外觀
+（`setup_view`、`chase_cam`）。因為環境用 editable 安裝（`pip install -e .`），
+直接 `import nanodrone` 即可。
+
 ## 程式風格
 
 - Python：用 `black` 格式化、`ruff` lint。命名清楚優先於炫技。

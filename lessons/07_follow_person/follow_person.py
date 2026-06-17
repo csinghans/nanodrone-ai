@@ -5,14 +5,13 @@ This combines two earlier lessons into something that feels like a real
 follow-me drone:
 
   * You drive a little **person** around with the gamepad/keyboard
-    (reusing Lesson 5's input backends).
+    (reusing the shared input backends — first written in Lesson 5).
   * The drone **follows you by camera** (Lesson 6's visual servoing) and now
     also **yaws to face you**, so it can trail you wherever you go — even in
     circles, not just side to side.
 
-Each perception tick the drone detects the orange person, works out where you
-are in the world, turns to face you, and flies to a standoff point a fixed
-distance behind you.
+Vision, geometry, input and the GUI look all come from the shared `nanodrone`
+core, so this lesson is mostly the *follow* rule plus the little person model.
 
 Run:
   python lessons/07_follow_person/follow_person.py            # you drive (window)
@@ -23,7 +22,6 @@ import math
 import sys
 import time
 
-import cv2
 import numpy as np
 import pybullet as p
 from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
@@ -31,20 +29,27 @@ from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
 from gym_pybullet_drones.utils.utils import sync
 
+from nanodrone import (
+    ORANGE,
+    chase_cam,
+    detect_blob,
+    make_input,
+    setup_view,
+    world_point,
+)
+
 START = np.array([0.0, 0.0, 1.0])
 DESIRED_DIST = 1.3  # how far behind the person the drone trails (m)
 FOLLOW_ALT = 1.0  # drone altitude while following (m)
 PERSON_SPEED = 0.9  # how fast you can drive the person (m/s)
 IMG_W, IMG_H = 160, 160
-FOV_DEG = 60.0
 PERCEPTION_EVERY = 6  # camera runs every N control steps (perception is slow)
-BOX_XY, BOX_Z = 3.0, (0.3, 2.5)
+BOX_XY = 3.0
 
 
 def build_person(client: int):
-    """A minimal orange 'person' (torso + head) plus a dark 'nose' marker that
-    shows which way they face. The nose is a different colour so it does not
-    confuse the orange detector."""
+    """An orange 'person' (torso + head) plus a dark 'nose' marker that shows
+    which way they face. The nose is non-orange so it doesn't bias the detector."""
     orange = [1.0, 0.5, 0.0, 1.0]
     torso_vis = p.createVisualShape(
         p.GEOM_BOX,
@@ -58,19 +63,13 @@ def build_person(client: int):
     nose_vis = p.createVisualShape(
         p.GEOM_BOX,
         halfExtents=[0.07, 0.04, 0.04],
-        rgbaColor=[0.1, 0.15, 0.35, 1.0],  # dark blue "face"
+        rgbaColor=[0.1, 0.15, 0.35, 1.0],
         physicsClientId=client,
     )
-    torso = p.createMultiBody(
-        baseMass=0, baseVisualShapeIndex=torso_vis, physicsClientId=client
+    return tuple(
+        p.createMultiBody(baseMass=0, baseVisualShapeIndex=v, physicsClientId=client)
+        for v in (torso_vis, head_vis, nose_vis)
     )
-    head = p.createMultiBody(
-        baseMass=0, baseVisualShapeIndex=head_vis, physicsClientId=client
-    )
-    nose = p.createMultiBody(
-        baseMass=0, baseVisualShapeIndex=nose_vis, physicsClientId=client
-    )
-    return torso, head, nose
 
 
 def move_person(ids, x: float, y: float, heading: float, client: int) -> None:
@@ -79,50 +78,14 @@ def move_person(ids, x: float, y: float, heading: float, client: int) -> None:
     quat = p.getQuaternionFromEuler([0, 0, heading])
     p.resetBasePositionAndOrientation(torso, [x, y, 0.42], quat, physicsClientId=client)
     p.resetBasePositionAndOrientation(head, [x, y, 0.87], quat, physicsClientId=client)
-    # The nose sits in front of the head, in the facing direction.
-    nx = x + 0.16 * math.cos(heading)
-    ny = y + 0.16 * math.sin(heading)
+    nx, ny = x + 0.16 * math.cos(heading), y + 0.16 * math.sin(heading)
     p.resetBasePositionAndOrientation(nose, [nx, ny, 0.9], quat, physicsClientId=client)
-
-
-def detect_person(rgb, dep, near, far):
-    """Find the orange person. Returns (found, bearing_deg, elev_deg, distance_m)."""
-    bgr = cv2.cvtColor(rgb[:, :, :3].astype(np.uint8), cv2.COLOR_RGB2BGR)
-    hsv = cv2.cvtColor(bgr, cv2.COLOR_BGR2HSV)
-    mask = cv2.inRange(hsv, (8, 120, 120), (25, 255, 255))  # orange
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    if not contours:
-        return False, 0.0, 0.0, 0.0
-    blob = max(contours, key=cv2.contourArea)
-    if cv2.contourArea(blob) < 20:
-        return False, 0.0, 0.0, 0.0
-    m = cv2.moments(blob)
-    cx, cy = m["m10"] / m["m00"], m["m01"] / m["m00"]
-    half = math.radians(FOV_DEG / 2)
-    bearing = math.degrees(math.atan(((2 * cx / IMG_W) - 1) * math.tan(half)))
-    elev = math.degrees(math.atan(-((2 * cy / IMG_H) - 1) * math.tan(half)))
-    distance = far * near / (far - (far - near) * float(dep[int(cy), int(cx)]))
-    return True, bearing, elev, distance
 
 
 def scripted_person_xy(t: float):
     """Headless path: the person walks a slow circle, so the drone must yaw to
     keep facing them (exercises the full follow loop without a controller)."""
     return 1.5 + 1.0 * math.cos(0.3 * t), 1.0 * math.sin(0.3 * t)
-
-
-def setup_view(client: int) -> None:
-    """Make the GUI less bare: hide the side panels so the 3D view fills the
-    window, turn on shadows, and frame the scene nicely."""
-    p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0, physicsClientId=client)
-    p.configureDebugVisualizer(p.COV_ENABLE_SHADOWS, 1, physicsClientId=client)
-    p.resetDebugVisualizerCamera(
-        cameraDistance=2.6,
-        cameraYaw=50,
-        cameraPitch=-32,
-        cameraTargetPosition=[1.0, 0.0, 0.8],
-        physicsClientId=client,
-    )
 
 
 def main(gui: bool = True) -> None:
@@ -147,12 +110,6 @@ def main(gui: bool = True) -> None:
     backend = None
     if gui:
         setup_view(env.CLIENT)
-        # Reuse Lesson 5's gamepad/keyboard input to drive the person.
-        sys.path.insert(
-            0, __file__.rsplit("/", 2)[0] + "/05_teleop"  # lessons/05_teleop
-        )
-        from teleop_xbox import make_input
-
         backend, _ = make_input("xbox")  # falls back to keyboard automatically
         print("Drive the person; the drone follows you. Ctrl-C to quit.")
 
@@ -190,25 +147,26 @@ def main(gui: bool = True) -> None:
 
             if i % PERCEPTION_EVERY == 0:
                 rgb, dep, _ = env._getDroneImages(0, segmentation=False)
-                found, bearing, _elev, dist = detect_person(rgb, dep, near, far)
-                if found:
-                    # World angle to the person: camera faces drone_yaw, and a
-                    # left-of-frame target reads as negative bearing (Lesson 2).
-                    theta = drone_yaw - math.radians(bearing)
+                blob = detect_blob(rgb, dep, ORANGE, near, far)
+                if blob.found:
+                    px, py, theta = world_point(
+                        drone_pos, drone_yaw, blob.bearing, blob.distance
+                    )
                     target_yaw = theta  # turn to face the person
-                    # Stand off DESIRED_DIST behind them, along the same line.
-                    reach = dist - DESIRED_DIST
+                    reach = blob.distance - DESIRED_DIST  # close the gap
                     drone_target = np.array(
                         [
-                            drone_pos[0] + reach * math.cos(theta),
-                            drone_pos[1] + reach * math.sin(theta),
+                            np.clip(
+                                drone_pos[0] + reach * math.cos(theta), -BOX_XY, BOX_XY
+                            ),
+                            np.clip(
+                                drone_pos[1] + reach * math.sin(theta), -BOX_XY, BOX_XY
+                            ),
                             FOLLOW_ALT,
                         ]
                     )
-                    drone_target[0] = np.clip(drone_target[0], -BOX_XY, BOX_XY)
-                    drone_target[1] = np.clip(drone_target[1], -BOX_XY, BOX_XY)
                     if t > 5:  # measure tracking after the drone catches up
-                        bearing_errs.append(abs(bearing))
+                        bearing_errs.append(abs(blob.bearing))
 
             action[0, :], _, _ = ctrl.computeControlFromState(
                 control_timestep=dt,
@@ -217,13 +175,7 @@ def main(gui: bool = True) -> None:
                 target_rpy=np.array([0.0, 0.0, target_yaw]),
             )
             if gui:
-                p.resetDebugVisualizerCamera(  # chase cam follows the drone
-                    cameraDistance=2.6,
-                    cameraYaw=50,
-                    cameraPitch=-32,
-                    cameraTargetPosition=drone_pos,
-                    physicsClientId=env.CLIENT,
-                )
+                chase_cam(env.CLIENT, drone_pos)  # camera follows the drone
                 env.render()
                 sync(i, start_t, dt)
             i += 1

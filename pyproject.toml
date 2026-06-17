@@ -1,3 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "nanodrone"
+version = "0.1.0"
+description = "Shared core for the nanodrone-ai course lessons"
+requires-python = ">=3.10"
+# Runtime deps (numpy, opencv, pybullet, ...) come from the conda env, so we
+# keep this empty to stop `pip install -e .` from re-resolving them.
+dependencies = []
+
+[tool.setuptools]
+packages = ["nanodrone"]
+
 [tool.black]
 line-length = 88
 target-version = ["py310"]
