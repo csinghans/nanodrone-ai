@@ -43,7 +43,9 @@ Scaffold first, then fill it in — this keeps every lesson consistent and CI gr
 2. Implement the lesson in `lessons/NN_slug/<slug>.py` (keep `--headless` working
    so CI can smoke-test it).
 3. Fill the five-part bilingual README (English first, then `zh-TW`).
-4. Fill `docs/en/NN-slug.md` and `docs/zh-TW/NN-slug.md`.
+4. The docs-site lesson pages are **auto-generated** from your README by
+   `tools/gen_docs.py` (the deploy runs it) — there's nothing separate to fill.
+   The README is the single source of truth.
 5. **Add a demo GIF** (every lesson has one): add a render function to
    `tools/render_media.py` that saves `assets/lessonNN.gif`, run
    `python tools/render_media.py`, and check the README's embedded GIF shows it.
@@ -51,8 +53,9 @@ Scaffold first, then fill it in — this keeps every lesson consistent and CI gr
    - the `nav:` entry in `mkdocs.yml`,
    - a learning-path row in **both** `README.md` and `README.zh-TW.md`,
    - a smoke step in `.github/workflows/ci.yml` (if it runs headless).
-7. Verify locally: `ruff check . && black --check .`, `mkdocs build --strict`,
-   and `python lessons/NN_slug/<slug>.py --headless`.
+7. Verify locally: `ruff check . && black --check .`,
+   `python tools/gen_docs.py && mkdocs build --strict`, and
+   `python lessons/NN_slug/<slug>.py --headless`.
 8. Commit & push; trigger CI and confirm lint + docs-parity + smoke are green.
 
 Reuse the shared **`nanodrone`** core instead of copying — it has the colour

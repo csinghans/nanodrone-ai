@@ -42,3 +42,10 @@ assets/_peek_*.png
 
 # MkDocs build
 site/
+
+# Generated docs lesson pages (built from lesson READMEs by tools/gen_docs.py).
+# The hand-written 00-overview.md and index.md stay tracked.
+docs/en/[0-9][0-9]-*.md
+docs/zh-TW/[0-9][0-9]-*.md
+!docs/en/00-overview.md
+!docs/zh-TW/00-overview.md

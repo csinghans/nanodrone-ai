@@ -5,7 +5,9 @@ on:
     branches: [main]
     paths:
       - "docs/**"
+      - "lessons/**/README.md"   # lesson pages are generated from these
       - "mkdocs.yml"
+      - "tools/gen_docs.py"
       - ".github/workflows/docs.yml"
   workflow_dispatch:
 
@@ -29,6 +31,7 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install mkdocs-material mkdocs-static-i18n
+      - run: python tools/gen_docs.py   # build lesson pages from the READMEs
       - run: mkdocs build --strict
       - uses: actions/upload-pages-artifact@v3
         with:

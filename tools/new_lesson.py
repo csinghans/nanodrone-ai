@@ -143,42 +143,6 @@ TODO：具體、可觀察的成功條件。
 - TODO：選讀延伸或挑戰。
 """
 
-DOC_EN_TEMPLATE = """\
-# Lesson %%NN%% — %%TITLE%%
-
-**Goal:** TODO one-sentence goal.
-
-TODO: a short paragraph summarizing the lesson.
-
-**Run**
-
-```bash
-python lessons/%%DIR%%/%%SLUG%%.py
-```
-
-**Checkpoint ✅** TODO observable success condition.
-
-➡️ Full lesson (code + walkthrough): [lessons/%%DIR%%](https://github.com/csinghans/nanodrone-ai/tree/main/lessons/%%DIR%%)
-"""
-
-DOC_ZH_TEMPLATE = """\
-# Lesson %%NN%% — %%TITLE%%
-
-**目標：** TODO 一句話目標。
-
-TODO：用一小段話總結這一課。
-
-**執行**
-
-```bash
-python lessons/%%DIR%%/%%SLUG%%.py
-```
-
-**驗收 ✅** TODO 可觀察的成功條件。
-
-➡️ 完整課程（程式碼 + 講解）：[lessons/%%DIR%%](https://github.com/csinghans/nanodrone-ai/tree/main/lessons/%%DIR%%)
-"""
-
 
 def render(template: str, mapping: dict) -> str:
     out = template
@@ -234,12 +198,8 @@ def main() -> None:
         os.path.join(ROOT, "lessons", lesson_dir, "README.md"),
         render(README_TEMPLATE, mapping),
     )
-    write_new(
-        os.path.join(ROOT, "docs", "en", docs_name), render(DOC_EN_TEMPLATE, mapping)
-    )
-    write_new(
-        os.path.join(ROOT, "docs", "zh-TW", docs_name), render(DOC_ZH_TEMPLATE, mapping)
-    )
+    # docs/en|zh-TW/NN-slug.md are generated from the README by tools/gen_docs.py
+    # (run automatically by the docs deploy), so the scaffold does not write them.
 
     print(
         "\nNow paste these 3 snippets by hand (see CONTRIBUTING > Adding a lesson):\n"

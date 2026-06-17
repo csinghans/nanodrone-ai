@@ -41,14 +41,16 @@ CI 會檢查每個 `docs/en/*.md` 都有對應的 `docs/zh-TW/*.md`。
 1. `python tools/new_lesson.py NN slug "Title"` —— 生出課程資料夾（含可跑的懸停骨架）、雙語 README、兩語 docs 頁。
 2. 在 `lessons/NN_slug/<slug>.py` 實作課程（保持 `--headless` 可用，CI 才能煙霧測試）。
 3. 填雙語五段式 README（英文先、繁中跟進）。
-4. 填 `docs/en/NN-slug.md` 與 `docs/zh-TW/NN-slug.md`。
+4. docs 網站的課程頁由 `tools/gen_docs.py` 從你的 README **自動產生**（部署時會跑），
+   不必另外填。README 就是唯一來源。
 5. **加 demo GIF**（每課都要有）：在 `tools/render_media.py` 加一個 render 函式產生
    `assets/lessonNN.gif`，跑 `python tools/render_media.py`，確認 README 嵌入的 GIF 正常。
 6. 貼上 scaffold 印出的三個片段：
    - `mkdocs.yml` 的 `nav:` 一列，
    - **兩個** README（`README.md` 與 `README.zh-TW.md`）的學習路線列，
    - `.github/workflows/ci.yml` smoke job 一步（若可 headless 跑）。
-7. 本機驗證：`ruff check . && black --check .`、`mkdocs build --strict`、`python lessons/NN_slug/<slug>.py --headless`。
+7. 本機驗證：`ruff check . && black --check .`、
+   `python tools/gen_docs.py && mkdocs build --strict`、`python lessons/NN_slug/<slug>.py --headless`。
 8. commit / push；觸發 CI 確認 lint + docs-parity + smoke 全綠。
 
 優先**重用 `nanodrone` 共用核心**而非複製 —— 裡面有色彩偵測 + 像素轉世界座標
