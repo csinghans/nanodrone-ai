@@ -1,25 +1,36 @@
 # Conda environment for nanodrone-ai (Apple Silicon / arm64 friendly)
 #
-# Create:   conda env create -f environment.yml
-# Activate: conda activate nanodrone-ai
+# Recommended: run  bash setup/install_env.sh  (creates this env AND installs
+# gym-pybullet-drones correctly). Or do it manually:
+#   conda env create -f environment.yml
+#   conda run -n nanodrone-ai pip install --no-deps \
+#     "gym-pybullet-drones @ git+https://github.com/utiasDSL/gym-pybullet-drones.git"
 #
-# Why Python 3.10? gym-pybullet-drones and several ML deps are not yet
-# tested on Python 3.12+. 3.10 is the sweet spot as of 2026.
+# Design notes:
+#  * pybullet ships no arm64-macOS wheel on PyPI and no longer compiles with the
+#    newest Xcode clang, so we take conda-forge's prebuilt binary.
+#  * Mixing pip-PyTorch with conda scientific packages causes an OpenMP runtime
+#    clash ("libomp.dylib already initialized" -> crash). Installing PyTorch from
+#    conda-forge too keeps a single OpenMP runtime in the process.
+#  * gym-pybullet-drones is installed separately with --no-deps so pip does not
+#    try to rebuild pybullet from source; all its deps are provided below.
 name: nanodrone-ai
 channels:
   - conda-forge
 dependencies:
-  - python=3.10
+  - python=3.12
   - pip
-  - pip:
-      - numpy<2
-      - pybullet
-      - "gymnasium>=0.29"
-      - stable-baselines3>=2.0
-      - opencv-python
-      # PyTorch wheels for macOS arm64 include the MPS (Apple GPU) backend.
-      - torch
-      - torchvision
-      # gym-pybullet-drones installed from source (see lessons/01_hover/README).
-      # If the line below fails, follow the manual clone steps in the lesson.
-      - "gym-pybullet-drones @ git+https://github.com/utiasDSL/gym-pybullet-drones.git"
+  # ML / GPU (MPS) — conda-forge build includes Apple Metal support
+  - pytorch
+  - torchvision
+  # Scientific stack
+  - numpy
+  - scipy
+  - matplotlib
+  - control            # python-control, required by gym-pybullet-drones
+  - transforms3d       # required by gym-pybullet-drones at runtime
+  # Simulation + RL + vision
+  - pybullet           # prebuilt; no local compilation
+  - gymnasium
+  - stable-baselines3
+  - opencv             # provides cv2

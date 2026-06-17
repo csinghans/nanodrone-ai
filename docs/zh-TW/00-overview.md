@@ -34,4 +34,4 @@
 | 3 | 讓神經網路駕駛無人機（避障） |
 | 4 | 部署到真機，完全離線飛行 |
 
-下一步：[Lesson 1 — 飛行控制基礎](../../lessons/01_hover/README.md)。
+下一步：[Lesson 1 — 飛行控制基礎](https://github.com/csinghans/nanodrone-ai/blob/main/lessons/01_hover/README.md)。

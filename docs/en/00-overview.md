@@ -40,4 +40,4 @@ GAP8 chip — the same approach as the academic [PULP-Dronet](https://github.com
 | 3 | Let a neural network fly the drone (avoid obstacles) |
 | 4 | Deploy to real hardware, flying fully offline |
 
-Next: [Lesson 1 — Flight control basics](../../lessons/01_hover/README.md).
+Next: [Lesson 1 — Flight control basics](https://github.com/csinghans/nanodrone-ai/blob/main/lessons/01_hover/README.md).

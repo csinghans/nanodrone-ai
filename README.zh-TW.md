@@ -4,6 +4,8 @@
 
 🌐 **語言：** [English](README.md) · **繁體中文**
 
+[![CI](https://github.com/csinghans/nanodrone-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/csinghans/nanodrone-ai/actions/workflows/ci.yml)
+[![Docs](https://github.com/csinghans/nanodrone-ai/actions/workflows/docs.yml/badge.svg)](https://github.com/csinghans/nanodrone-ai/actions/workflows/docs.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -53,8 +55,8 @@
 # 1. 若還沒裝，先安裝 miniforge（Apple Silicon 版 conda）
 bash setup/install_macos.sh
 
-# 2. 建立並啟用環境
-conda env create -f environment.yml
+# 2. 建立環境（同時會裝好 gym-pybullet-drones）
+bash setup/install_env.sh
 conda activate nanodrone-ai
 
 # 3. 確認 GPU（MPS）後端可用

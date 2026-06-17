@@ -1,9 +1,9 @@
 name: CI
 
+# Manual trigger only: run from the Actions tab ("Run workflow") or via
+#   gh workflow run ci.yml
 on:
-  push:
-    branches: [main]
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   lint:

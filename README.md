@@ -4,6 +4,8 @@
 
 🌐 **Languages:** **English** · [繁體中文](README.zh-TW.md)
 
+[![CI](https://github.com/csinghans/nanodrone-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/csinghans/nanodrone-ai/actions/workflows/ci.yml)
+[![Docs](https://github.com/csinghans/nanodrone-ai/actions/workflows/docs.yml/badge.svg)](https://github.com/csinghans/nanodrone-ai/actions/workflows/docs.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 ---
@@ -53,8 +55,8 @@ Each lesson follows the same five-part shape: **Why → Concept → Hands-on →
 # 1. Install miniforge (conda for Apple Silicon) if you don't have it
 bash setup/install_macos.sh
 
-# 2. Create and activate the environment
-conda env create -f environment.yml
+# 2. Create the environment (also installs gym-pybullet-drones)
+bash setup/install_env.sh
 conda activate nanodrone-ai
 
 # 3. Verify the GPU (MPS) backend is available

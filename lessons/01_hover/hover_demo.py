@@ -24,8 +24,8 @@ import time
 import numpy as np
 
 try:
-    from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
     from gym_pybullet_drones.control.DSLPIDControl import DSLPIDControl
+    from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
     from gym_pybullet_drones.utils.enums import DroneModel, Physics
     from gym_pybullet_drones.utils.utils import sync
 except ImportError as exc:  # pragma: no cover - friendly beginner message
@@ -44,8 +44,8 @@ except ImportError as exc:  # pragma: no cover - friendly beginner message
 
 # --- Flight plan -----------------------------------------------------------
 START_POS = np.array([[0.0, 0.0, 0.1]])  # start near the ground
-TARGET_POS = np.array([0.0, 0.0, 1.0])   # hover target: 1 m straight up
-DURATION_SEC = 10                        # how long to hover
+TARGET_POS = np.array([0.0, 0.0, 1.0])  # hover target: 1 m straight up
+DURATION_SEC = 10  # how long to hover
 
 
 def main(gui: bool = True) -> None:
@@ -54,8 +54,8 @@ def main(gui: bool = True) -> None:
         num_drones=1,
         initial_xyzs=START_POS,
         physics=Physics.PYB,
-        pyb_freq=240,    # physics steps per second
-        ctrl_freq=48,    # control updates per second (your AI loop rate)
+        pyb_freq=240,  # physics steps per second
+        ctrl_freq=48,  # control updates per second (your AI loop rate)
         gui=gui,
     )
     ctrl = DSLPIDControl(drone_model=DroneModel.CF2X)

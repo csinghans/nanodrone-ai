@@ -1,9 +1,11 @@
 # MkDocs Material + i18n config for the bilingual docs site.
-# Build locally:  pip install mkdocs-material mkdocs-static-i18n && mkdocs serve
-# Deploy:         mkdocs gh-deploy   (publishes to GitHub Pages)
+# Build/preview locally:  mkdocs serve
+# The docs are deployed to GitHub Pages by .github/workflows/docs.yml.
 site_name: nanodrone-ai
 site_description: A beginner's step-by-step course on on-device AI autonomy for nano-drones
 repo_url: https://github.com/csinghans/nanodrone-ai
+docs_dir: docs
+
 theme:
   name: material
   features:
@@ -21,6 +23,7 @@ plugins:
         - locale: zh-TW
           name: 繁體中文
 
-# Docs live under docs/en and docs/zh-TW (folder structure i18n).
+# Paths are relative to each language folder (docs/en, docs/zh-TW).
 nav:
+  - Home: index.md
   - Overview: 00-overview.md
