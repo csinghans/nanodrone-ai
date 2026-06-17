@@ -2,6 +2,11 @@
 
 🌐 **English** (below) · [跳到繁體中文](#中文)
 
+![Lesson 4 — the model fits the GAP8](../../assets/lesson4.png)
+
+*(No flight clip here — this lesson shrinks Lesson 3's CNN and deploys to real
+hardware. Above: `quantize_cnn.py` confirms the int8 model fits the GAP8.)*
+
 > This is the finish line: the same autonomy you built in simulation, running
 > **on a real nano-drone, fully offline** — no laptop, no Wi-Fi. Part of this
 > lesson you can do **right now for free**; the rest needs hardware (~US$545).

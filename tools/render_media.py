@@ -310,11 +310,41 @@ def render_follow_real():  # Lesson 8 — follow a real person via the trained C
     save_gif(frames, "lesson8.gif")
 
 
+def render_lesson4():  # Lesson 4 — static: the model footprint (no sim flight)
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from train_cnn import TinyDronet
+
+    n = sum(t.numel() for t in TinyDronet().parameters())
+    fp32, int8, budget = n * 4 / 1024, n * 1 / 1024, 512
+    fig, ax = plt.subplots(figsize=(5.2, 3.2))
+    bars = ax.bar(
+        ["float32\n(desktop)", "int8\n(GAP8)"],
+        [fp32, int8],
+        color=["#9aa0a6", "#1a73e8"],
+    )
+    ax.axhline(budget, color="red", ls="--")
+    ax.text(1.4, budget - 40, "GAP8 512 KB budget", color="red", ha="right", fontsize=9)
+    for b, v in zip(bars, [fp32, int8]):
+        ax.text(b.get_x() + b.get_width() / 2, v + 6, f"{v:.0f} KB", ha="center")
+    ax.set_ylabel("weights (KB)")
+    ax.set_ylim(0, budget * 1.12)
+    ax.set_title(f"TinyDronet ({n:,} params) fits the GAP8 AI-deck")
+    fig.tight_layout()
+    out = os.path.join(ASSETS, "lesson4.png")
+    os.makedirs(ASSETS, exist_ok=True)
+    fig.savefig(out, dpi=110)
+    print(f"  lesson4.png: {os.path.getsize(out) // 1024} KB")
+
+
 if __name__ == "__main__":
-    print("Rendering lesson GIFs into assets/ ...")
+    print("Rendering lesson media into assets/ ...")
     render_hover()
     render_detection()
     render_avoid()
+    render_lesson4()
     render_teleop()
     render_follow_me()
     render_follow_person()
