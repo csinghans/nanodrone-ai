@@ -1,0 +1,6 @@
+# Extra packages for Lesson 4 only. NOT needed for the simulation lessons (0-3).
+# Install into the conda env when you start the hardware lesson:
+#   conda activate nanodrone-ai
+#   pip install -r setup/requirements-hardware.txt
+cflib        # talk to a real Crazyflie over the Crazyradio
+onnx         # export the trained CNN to ONNX for the GAP8 toolchain
