@@ -1,0 +1,39 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# conda
+.conda/
+
+# ML artifacts / training output
+*.zip
+*.pth
+*.onnx
+runs/
+logs/
+results/
+checkpoints/
+wandb/
+
+# Simulation recordings
+*.mp4
+*.gif
+recording*/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# MkDocs build
+site/

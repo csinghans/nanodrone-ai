@@ -1,0 +1,25 @@
+# Conda environment for nanodrone-ai (Apple Silicon / arm64 friendly)
+#
+# Create:   conda env create -f environment.yml
+# Activate: conda activate nanodrone-ai
+#
+# Why Python 3.10? gym-pybullet-drones and several ML deps are not yet
+# tested on Python 3.12+. 3.10 is the sweet spot as of 2026.
+name: nanodrone-ai
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - pip
+  - pip:
+      - numpy<2
+      - pybullet
+      - "gymnasium>=0.29"
+      - stable-baselines3>=2.0
+      - opencv-python
+      # PyTorch wheels for macOS arm64 include the MPS (Apple GPU) backend.
+      - torch
+      - torchvision
+      # gym-pybullet-drones installed from source (see lessons/01_hover/README).
+      # If the line below fails, follow the manual clone steps in the lesson.
+      - "gym-pybullet-drones @ git+https://github.com/utiasDSL/gym-pybullet-drones.git"

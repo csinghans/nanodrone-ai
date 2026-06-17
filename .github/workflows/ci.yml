@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint Python (ruff + black)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+      - run: pip install ruff black
+      - run: ruff check .
+      - run: black --check .
+
+  docs-parity:
+    name: Bilingual docs parity (en <-> zh-TW)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Every docs/en/*.md must have a docs/zh-TW/*.md twin
+        run: |
+          missing=0
+          for f in docs/en/*.md; do
+            base="$(basename "$f")"
+            if [ ! -f "docs/zh-TW/$base" ]; then
+              echo "::error::Missing translation: docs/zh-TW/$base"
+              missing=1
+            fi
+          done
+          for f in docs/zh-TW/*.md; do
+            base="$(basename "$f")"
+            if [ ! -f "docs/en/$base" ]; then
+              echo "::error::Orphan translation (no English source): docs/en/$base"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "Bilingual parity check failed."
+            exit 1
+          fi
+          echo "All docs are paired. ✅"
