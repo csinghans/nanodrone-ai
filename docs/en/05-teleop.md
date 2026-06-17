@@ -16,8 +16,9 @@ python lessons/05_teleop/teleop_xbox.py            # Xbox pad (else keyboard)
 python lessons/05_teleop/teleop_xbox.py --list     # calibrate axes
 ```
 
-Controls (world-frame): **right stick** moves horizontally, **left stick**
-changes height. Keyboard fallback: arrow keys + `W`/`S`.
+Controls (body-frame): **right stick** moves (forward/strafe), **left stick**
+changes height and **yaws** the heading. Keyboard fallback: arrows + `W`/`S` +
+`Q`/`E` (yaw).
 
 **Checkpoint ✅** A window opens and the drone flies under your sticks, hovering
 when you let go. No controller needed to verify the loop:

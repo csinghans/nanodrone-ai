@@ -12,7 +12,7 @@ python lessons/05_teleop/teleop_xbox.py            # Xbox 手把（否則鍵盤�
 python lessons/05_teleop/teleop_xbox.py --list     # 校準軸
 ```
 
-操控（世界座標）：**右搖桿**水平移動、**左搖桿**改變高度。鍵盤後備：方向鍵 + `W`/`S`。
+操控（機體座標）：**右搖桿**移動（前後/平移）、**左搖桿**改變高度並**轉機頭（yaw）**。鍵盤後備：方向鍵 + `W`/`S` + `Q`/`E`（yaw）。
 
 **驗收 ✅** 視窗開啟、無人機隨你的搖桿飛行，鬆手即懸停。不用手把也能驗證迴圈：`python lessons/05_teleop/teleop_xbox.py --input selftest`。
 

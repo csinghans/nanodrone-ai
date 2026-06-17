@@ -20,8 +20,8 @@ Each frame we:
 3. let the **PID flight controller** chase that target.
 
 Release the sticks → the target stops → the drone **hovers in place**. Controls
-are *world-frame*: push right, it goes right (the drone's own heading is ignored
-— adding yaw is a "going further" exercise).
+are *body-frame* (like an FPV pilot): the left stick also **yaws** the heading,
+and "forward" then follows wherever the nose points.
 
 ## Hands-on
 
@@ -46,6 +46,7 @@ python lessons/05_teleop/teleop_xbox.py --list
 | forward / back | right stick ↕ | ↑ / ↓ |
 | right / left | right stick ↔ | → / ← |
 | up / down | left stick ↕ | W / S |
+| yaw (turn heading) | left stick ↔ | Q / E |
 | quit | Ctrl-C | Ctrl-C |
 
 Read [`teleop_xbox.py`](teleop_xbox.py): the three input backends (`xbox`,
@@ -68,8 +69,7 @@ python lessons/05_teleop/teleop_xbox.py --input selftest
 
 ## Going further
 
-- **Add yaw** (turn the drone's heading): map the left stick X to a target yaw
-  and feed it to the controller, then fly in *body frame*.
+- **Tune the feel:** adjust `SPEED` and `YAW_RATE` at the top of the script.
 - **Heads-up display:** overlay Lesson 2's obstacle detector so you see what an
   AI *would* see while you fly.
 - **Record a GIF** of your flight (see `tools/render_media.py` for the headless
@@ -94,7 +94,7 @@ Lesson 1–4 讓無人機自己飛。這堂加成課把搖桿交給**你**。親
 2. 積分進一個會移動的**目標位置**（夾在安全飛行盒內），
 3. 交給 **PID 飛控**去追那個目標。
 
-鬆開搖桿 → 目標停住 → 無人機**定點懸停**。操控是*世界座標*：往右推就往右飛（不管機頭朝向 —— 加入 yaw 轉向是「延伸」練習）。
+鬆開搖桿 → 目標停住 → 無人機**定點懸停**。操控是*機體座標*（像 FPV 飛手）：左搖桿還能**轉機頭（yaw）**，轉完之後「前進」就跟著機頭方向走。
 
 ## 動手做
 
@@ -119,6 +119,7 @@ python lessons/05_teleop/teleop_xbox.py --list
 | 前進／後退 | 右搖桿 ↕ | ↑ / ↓ |
 | 右／左 | 右搖桿 ↔ | → / ← |
 | 上升／下降 | 左搖桿 ↕ | W / S |
+| yaw（轉機頭） | 左搖桿 ↔ | Q / E |
 | 離開 | Ctrl-C | Ctrl-C |
 
 請讀 [`teleop_xbox.py`](teleop_xbox.py)：三種輸入後端（`xbox`／`keyboard`／`selftest`）共用同一個飛行迴圈。Xbox 預設軸索引依 SDL2（LX0/LY1/RX2/RY3）；不同的話用 `--list` 校準。
@@ -136,6 +137,6 @@ python lessons/05_teleop/teleop_xbox.py --input selftest
 
 ## 延伸
 
-- **加入 yaw**（轉機頭）：把左搖桿 X 對應到目標偏航角餵給控制器，改用*機體座標*飛。
+- **調手感：** 改腳本最上方的 `SPEED` 與 `YAW_RATE`。
 - **抬頭顯示（HUD）：** 疊上 Lesson 2 的障礙偵測器，邊飛邊看 AI「會看到」什麼。
 - **錄一段飛行 GIF**（headless 相機擷取作法見 `tools/render_media.py`）。
