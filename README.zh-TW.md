@@ -82,9 +82,18 @@ python lessons/01_hover/hover_demo.py
 
 歡迎貢獻 — 尤其是翻譯校對。請見 [CONTRIBUTING.zh-TW.md](CONTRIBUTING.zh-TW.md)（[English](CONTRIBUTING.md)）。英文為來源語言，繁體中文版跟進更新。
 
-## 致謝
+## 專案起源與致謝
 
-本專案站在這些巨人的肩膀上：[gym-pybullet-drones](https://github.com/utiasDSL/gym-pybullet-drones)、[Bitcraze Crazyflie](https://www.bitcraze.io/)、以及 [PULP-Dronet](https://github.com/pulp-platform/pulp-dronet) 研究（ETH Zürich／Bologna 大學）。
+本課程站在這些開源專案的肩膀上：
+
+- **[PULP-Dronet](https://github.com/pulp-platform/pulp-dronet)**（ETH Zürich／
+  Bologna 大學）—— **核心靈感來源**。它讓一個 CNN 完全跑在 Crazyflie 奈米無人機
+  的機身上（GAP8 AI-deck）做自主導航 —— 正是本課程要打造的「離線、板載」自主能力。
+  Lesson 3 的 Route B 就是它做法的縮影，Lesson 4 更會部署到同一套硬體。
+- **[gym-pybullet-drones](https://github.com/utiasDSL/gym-pybullet-drones)**
+  （UTIAS DSL）—— Lesson 1–3 使用的 PyBullet 模擬器與 Crazyflie 模型。
+- **[Bitcraze Crazyflie](https://www.bitcraze.io/)** —— Lesson 4 鎖定的開源硬體
+  平台與 AI-deck。
 
 ## 授權
 

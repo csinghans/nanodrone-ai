@@ -82,9 +82,20 @@ Real drone flight is regulated. Before flying hardware (Lesson 4): check your lo
 
 Contributions welcome — especially translation review. See [CONTRIBUTING.md](CONTRIBUTING.md) ([繁中](CONTRIBUTING.zh-TW.md)). English is the source language; the Traditional Chinese version follows it.
 
-## Credits
+## Origins & credits
 
-Stands on the shoulders of [gym-pybullet-drones](https://github.com/utiasDSL/gym-pybullet-drones), [Bitcraze Crazyflie](https://www.bitcraze.io/), and the [PULP-Dronet](https://github.com/pulp-platform/pulp-dronet) research (ETH Zürich / University of Bologna).
+This course stands on the shoulders of these open-source projects:
+
+- **[PULP-Dronet](https://github.com/pulp-platform/pulp-dronet)** (ETH Zürich /
+  University of Bologna) — the foundational inspiration. It runs a CNN fully
+  on-board a Crazyflie nano-drone (the GAP8 AI-deck) for autonomous navigation —
+  exactly the offline, on-device autonomy this course builds toward. Lesson 3's
+  Route B is a miniature of its approach, and Lesson 4 deploys onto the same
+  hardware.
+- **[gym-pybullet-drones](https://github.com/utiasDSL/gym-pybullet-drones)**
+  (UTIAS DSL) — the PyBullet simulator and Crazyflie model used in Lessons 1–3.
+- **[Bitcraze Crazyflie](https://www.bitcraze.io/)** — the open hardware
+  platform and AI-deck targeted in Lesson 4.
 
 ## License
 
