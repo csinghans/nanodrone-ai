@@ -18,5 +18,9 @@
 | 2 | 感知 | $0 |
 | 3 | 自主決策 AI | $0 |
 | 4 | 真機 + 板載離線 AI | 約 US$545 |
+| 5 *(加成)* | 親手飛（Xbox 手把） | $0 |
+| 6 | 跟隨模式（視覺伺服） | $0 |
+| 7 | 跟著飛手（轉向尾隨） | $0 |
+| 8 | 跟隨真人（訓練 CNN） | $0 |
 
 > 🌐 Switch language: use the language selector at the top-right to switch to **English**.
