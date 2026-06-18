@@ -41,7 +41,7 @@ from nanodrone import chase_cam, setup_view
 START = np.array([0.0, 0.0, 1.0])
 DEFAULT_DIST = 0.5  # metres per move command if none given
 DEFAULT_DEG = 30.0  # degrees per turn command if none given
-BOX_XY, BOX_Z = 2.0, (0.3, 2.5)
+BOX_XY, BOX_Z = 3.0, (0.3, 2.5)  # indoor geofence: 6x6 m, 0.3-2.5 m high
 
 
 def apply_command(cmd: dict, target: np.ndarray, yaw: float):
@@ -178,6 +178,12 @@ def run(gui: bool, host: str, port: int, selftest: bool) -> None:
                 elif mode == "emergency":
                     target[:] = env._getDroneStateVector(0)[0:3]
                     landing = False
+            if cmds:
+                print(
+                    f"[bridge] target -> x={target[0]:+.2f} y={target[1]:+.2f} "
+                    f"z={target[2]:+.2f} yaw={math.degrees(yaw):+.0f} deg",
+                    flush=True,
+                )
 
             if landing:
                 target[2] = max(BOX_Z[0], target[2] - 0.4 * dt)
@@ -191,7 +197,6 @@ def run(gui: bool, host: str, port: int, selftest: bool) -> None:
             )
             if gui:
                 chase_cam(env.CLIENT, obs[0][0:3])
-                env.render()
                 sync(i, start_t, dt)
             i += 1
     except KeyboardInterrupt:
