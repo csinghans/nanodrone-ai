@@ -192,7 +192,11 @@ class VoiceListener:  # pragma: no cover - needs a mic + model, user runs this
         return latest
 
     def stop(self):
+        # Join the thread so the PortAudio stream closes cleanly before exit
+        # (otherwise the daemon thread is killed mid-teardown -> SIGABRT).
         self._stop.set()
+        if self._thread.is_alive():
+            self._thread.join(timeout=1.5)
 
 
 def fly(selftest: bool, lang: str = "en") -> None:
