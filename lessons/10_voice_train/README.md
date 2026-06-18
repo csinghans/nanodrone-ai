@@ -25,7 +25,9 @@ fixed commands. Three steps, all on-device:
 3. **Fly** — classify each ~1 s mic window with *your* model and drive the drone
    (world-frame, same PID controller).
 
-Commands: forward, back, left, right, up, down, stop, land.
+Commands: forward, back, left, right, up, down, stop, land — plus a
+**background** class (silence/ambient) so *not* speaking is ignored instead of
+triggering a random command (the main reason naive KWS feels inaccurate).
 
 ## Hands-on
 
@@ -33,7 +35,7 @@ Commands: forward, back, left, right, up, down, stop, land.
 conda activate nanodrone-ai
 pip install -r setup/requirements-extra.txt          # sounddevice + python_speech_features
 
-python lessons/10_voice_train/record_commands.py --reps 8   # 1. say each command 8x
+python lessons/10_voice_train/record_commands.py --reps 12  # 1. auto-record each + silence
 python lessons/10_voice_train/train_kws.py                  # 2. train on your voice
 python lessons/10_voice_train/kws_fly.py                    # 3. fly with your model
 
@@ -95,7 +97,7 @@ Lesson 9 的通用語音模型對某些口音辨識不佳。解法正是課程�
 2. **訓練** —— 小 CNN（`make_net`）學「音訊片段 → 命令」，跟 Lesson 3、8 的影像 CNN 一樣（MFCC 就是一張 44×13 的圖）。
 3. **飛行** —— 用*你的*模型分類每個約 1 秒的麥克風視窗，驅動無人機（世界座標、同一個 PID）。
 
-命令：forward、back、left、right、up、down、stop、land。
+命令：forward、back、left、right、up、down、stop、land —— 外加一個 **background**（安靜/環境音）類別，讓你*沒講話*時被忽略、不會亂觸發命令（這正是 naive KWS 感覺不準的主因）。
 
 ## 動手做
 
@@ -103,7 +105,7 @@ Lesson 9 的通用語音模型對某些口音辨識不佳。解法正是課程�
 conda activate nanodrone-ai
 pip install -r setup/requirements-extra.txt          # sounddevice + python_speech_features
 
-python lessons/10_voice_train/record_commands.py --reps 8   # 1. 每個命令唸 8 次
+python lessons/10_voice_train/record_commands.py --reps 12  # 1. 自動連錄每個命令 + 安靜
 python lessons/10_voice_train/train_kws.py                  # 2. 用你的聲音訓練
 python lessons/10_voice_train/kws_fly.py                    # 3. 用你的模型飛
 

@@ -133,7 +133,7 @@ def main(selftest: bool) -> None:
             label = scripted_label(t) if selftest else (listener.poll())
             if label == "land":
                 landing = True
-            elif label is not None:
+            elif label in COMMANDS:  # a movement command (ignores 'background'/None)
                 vel = COMMANDS[label]
 
             vx, vy, vz = (0, 0, 0) if landing else vel

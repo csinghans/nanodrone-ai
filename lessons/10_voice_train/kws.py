@@ -23,7 +23,11 @@ COMMANDS = {
     "stop": (0, 0, 0),
     "land": (0, 0, 0),
 }
-LABELS = list(COMMANDS)  # fixed order -> class indices
+# A "background" class for silence / ambient noise. When the model hears it,
+# the flight loop ignores it — so not speaking never triggers a random command
+# (the main reason naive KWS feels inaccurate).
+BACKGROUND = "background"
+LABELS = list(COMMANDS) + [BACKGROUND]  # fixed order -> class indices
 
 # Suggested 中文 word to say for each command. The label is just an internal id,
 # so you can record ANY sound per slot (Chinese, English, a whistle) — say the
@@ -37,6 +41,7 @@ SAY = {
     "down": "下降",
     "stop": "停止",
     "land": "降落",
+    "background": "（保持安靜）",
 }
 
 
