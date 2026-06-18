@@ -8,7 +8,8 @@ the small CNN. record_commands.py, train_kws.py and kws_fly.py all import this.
 import numpy as np
 
 SAMPLE_RATE = 16000
-DURATION = 1.0  # seconds recorded per command
+DURATION = 1.2  # seconds recorded per command (room for reaction time)
+N_SAMPLES = int(SAMPLE_RATE * DURATION)
 N_MFCC = 13
 N_FRAMES = 44  # MFCC frames kept per sample (pad / truncate to this)
 
@@ -46,10 +47,12 @@ SAY = {
 
 
 def wav_to_feat(signal: np.ndarray, sr: int = SAMPLE_RATE) -> np.ndarray:
-    """Audio waveform -> (N_FRAMES, N_MFCC) MFCC feature, padded/truncated."""
+    """Audio waveform -> (N_FRAMES, N_MFCC) MFCC feature. winstep is chosen so
+    N_FRAMES spans the WHOLE clip (the earlier 0.01 s step only covered the first
+    ~0.45 s, cutting off words spoken after the prompt)."""
     from python_speech_features import mfcc  # lazy: only needed for real audio
 
-    feat = mfcc(signal, sr, numcep=N_MFCC, nfft=512)
+    feat = mfcc(signal, sr, numcep=N_MFCC, winlen=0.025, winstep=0.025, nfft=512)
     if len(feat) < N_FRAMES:
         feat = np.pad(feat, ((0, N_FRAMES - len(feat)), (0, 0)))
     else:
@@ -58,17 +61,25 @@ def wav_to_feat(signal: np.ndarray, sr: int = SAMPLE_RATE) -> np.ndarray:
     return ((feat - feat.mean()) / (feat.std() + 1e-6)).astype(np.float32)
 
 
-def synthetic_feat(label_idx: int, rng) -> np.ndarray:
-    """A fake but class-separable feature, so the pipeline can be tested without
-    a microphone (used by record_commands.py --synthetic and CI)."""
-    base = rng.standard_normal((N_FRAMES, N_MFCC)).astype(np.float32) * 0.3
-    base[:, label_idx % N_MFCC] += 3.0  # a per-class column signature
-    base += label_idx * 0.5  # + a global per-class offset (survives pooling)
-    return base.astype(np.float32)
+def synthetic_raw(label_idx: int, rng) -> np.ndarray:
+    """A fake but class-separable waveform, so the pipeline can be tested without
+    a microphone (used by record_commands.py --synthetic and CI). Each command is
+    a different tone; the background class is quiet noise."""
+    if LABELS[label_idx] == BACKGROUND:
+        return (rng.standard_normal(N_SAMPLES) * 50).astype(np.int16)
+    t = np.arange(N_SAMPLES) / SAMPLE_RATE
+    freq = 200 + label_idx * 150
+    sig = np.sin(2 * np.pi * freq * t) * 8000 + rng.standard_normal(N_SAMPLES) * 200
+    return sig.astype(np.int16)
 
 
 def make_net():
-    """A compact CNN over the (1, N_FRAMES, N_MFCC) MFCC 'image'."""
+    """A compact CNN over the (1, N_FRAMES, N_MFCC)=(1,44,13) MFCC 'image'.
+
+    We FLATTEN the conv features (instead of global-average-pooling) so the
+    time-frequency pattern that tells words apart is kept — global pooling threw
+    away the temporal structure and the model couldn't separate the commands.
+    Two stride-2 convs: 44x13 -> 22x7 -> 11x4, so 32*11*4 = 1408 features."""
     import torch.nn as nn
 
     return nn.Sequential(
@@ -76,7 +87,9 @@ def make_net():
         nn.ReLU(),
         nn.Conv2d(16, 32, 3, stride=2, padding=1),
         nn.ReLU(),
-        nn.AdaptiveAvgPool2d(1),
         nn.Flatten(),
-        nn.Linear(32, len(LABELS)),
+        nn.Dropout(0.3),
+        nn.Linear(32 * 11 * 4, 64),
+        nn.ReLU(),
+        nn.Linear(64, len(LABELS)),
     )

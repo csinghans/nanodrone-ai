@@ -24,21 +24,22 @@ from kws import (  # noqa: E402
     LABELS,
     SAMPLE_RATE,
     SAY,
-    synthetic_feat,
-    wav_to_feat,
+    synthetic_raw,
 )
 
 OUT = os.path.join(os.path.dirname(__file__), "output", "kws_dataset.npz")
 
 
 def record_one() -> np.ndarray:
+    """Record one clip and return the RAW waveform (features are computed at
+    train time, so we can tweak the feature pipeline without re-recording)."""
     import sounddevice as sd
 
     audio = sd.rec(
         int(DURATION * SAMPLE_RATE), samplerate=SAMPLE_RATE, channels=1, dtype="int16"
     )
     sd.wait()
-    return wav_to_feat(audio[:, 0])
+    return audio[:, 0]
 
 
 def main() -> None:
@@ -52,7 +53,7 @@ def main() -> None:
         rng = np.random.default_rng(0)
         for idx in range(len(LABELS)):
             for _ in range(args.synthetic):
-                X.append(synthetic_feat(idx, rng))
+                X.append(synthetic_raw(idx, rng))
                 y.append(idx)
         print(f"Synthetic dataset: {len(y)} samples.")
     else:
@@ -76,8 +77,8 @@ def main() -> None:
         print(f"Recorded {len(y)} samples across {len(LABELS)} classes.")
 
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
-    np.savez_compressed(
-        OUT, X=np.array(X, dtype=np.float32), y=np.array(y), labels=LABELS
+    np.savez_compressed(  # X is raw int16 waveforms (N, samples)
+        OUT, X=np.array(X, dtype=np.int16), y=np.array(y), labels=LABELS
     )
     print(f"Saved {OUT}")
 

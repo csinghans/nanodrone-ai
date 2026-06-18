@@ -20,7 +20,7 @@ import torch
 import torch.nn as nn
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from kws import LABELS, make_net  # noqa: E402
+from kws import LABELS, make_net, wav_to_feat  # noqa: E402
 
 DATA = os.path.join(os.path.dirname(__file__), "output", "kws_dataset.npz")
 MODEL = os.path.join(os.path.dirname(__file__), "output", "kws_model.pth")
@@ -38,7 +38,9 @@ def main() -> None:
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     print(f"[INFO] training on {device}")
     blob = np.load(DATA)
-    X = torch.tensor(blob["X"]).unsqueeze(1)  # (N, 1, frames, mfcc)
+    raw = blob["X"]  # raw int16 waveforms; features computed here
+    feats = np.stack([wav_to_feat(raw[i]) for i in range(len(raw))])
+    X = torch.tensor(feats).unsqueeze(1)  # (N, 1, frames, mfcc)
     y = torch.tensor(blob["y"]).long()
 
     n_val = max(len(LABELS), int(0.2 * len(X)))
