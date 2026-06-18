@@ -11,6 +11,7 @@ Output: output/kws_model.pth
 """
 
 import argparse
+import copy
 import os
 import sys
 
@@ -46,24 +47,31 @@ def main() -> None:
     Xva, yva = X[perm[:n_val]].to(device), y[perm[:n_val]].to(device)
 
     net = make_net().to(device)
-    opt = torch.optim.Adam(net.parameters(), lr=1e-3)
+    opt = torch.optim.Adam(net.parameters(), lr=1e-3, weight_decay=1e-4)
     loss_fn = nn.CrossEntropyLoss()
+    best_acc, best_state = 0.0, copy.deepcopy(net.state_dict())
     for epoch in range(1, args.epochs + 1):
         net.train()
         order = torch.randperm(len(Xtr))
         for i in range(0, len(Xtr), args.batch):
-            b = order[i : i + args.batch]
+            xb, yb = Xtr[order[i : i + args.batch]], ytr[order[i : i + args.batch]]
+            # Light augmentation squeezes more out of a few recordings: add noise
+            # and shift in time (roll the MFCC frames a little).
+            xb = xb + 0.06 * torch.randn_like(xb)
+            xb = torch.roll(xb, shifts=int(torch.randint(-2, 3, (1,))), dims=2)
             opt.zero_grad()
-            loss_fn(net(Xtr[b]), ytr[b]).backward()
+            loss_fn(net(xb), yb).backward()
             opt.step()
+        net.eval()
+        with torch.no_grad():
+            acc = (net(Xva).argmax(1) == yva).float().mean().item()
+        if acc >= best_acc:  # keep the best model, not the last epoch's
+            best_acc, best_state = acc, copy.deepcopy(net.state_dict())
         if epoch % 10 == 0 or epoch == args.epochs:
-            net.eval()
-            with torch.no_grad():
-                acc = (net(Xva).argmax(1) == yva).float().mean().item()
             print(f"  epoch {epoch:3d}  val accuracy = {acc * 100:.0f}%")
 
-    torch.save(net.state_dict(), MODEL)
-    print(f"[INFO] saved model to {MODEL}")
+    torch.save(best_state, MODEL)
+    print(f"[INFO] saved best model ({best_acc * 100:.0f}% val) to {MODEL}")
 
 
 if __name__ == "__main__":
