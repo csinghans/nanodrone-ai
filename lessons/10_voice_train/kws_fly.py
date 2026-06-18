@@ -23,7 +23,7 @@ from gym_pybullet_drones.utils.utils import sync
 from nanodrone import chase_cam, setup_view
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from kws import COMMANDS, DURATION, LABELS, SAMPLE_RATE  # noqa: E402
+from kws import COMMANDS, DURATION, LABELS, SAMPLE_RATE, SAY  # noqa: E402
 
 START = np.array([0.0, 0.0, 1.0])
 SPEED = 0.8
@@ -52,7 +52,7 @@ class KwsListener:  # pragma: no cover - needs a mic + model, user runs this
         self._thread = threading.Thread(target=self._run, daemon=True)
 
     def start(self):
-        print(f"Listening — say: {', '.join(LABELS)}")
+        print("Listening — say: " + " / ".join(f"{lab}({SAY[lab]})" for lab in LABELS))
         self._thread.start()
 
     def _run(self):

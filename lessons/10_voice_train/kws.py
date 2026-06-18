@@ -25,6 +25,20 @@ COMMANDS = {
 }
 LABELS = list(COMMANDS)  # fixed order -> class indices
 
+# Suggested 中文 word to say for each command. The label is just an internal id,
+# so you can record ANY sound per slot (Chinese, English, a whistle) — say the
+# same thing when flying. These are only shown as a hint while recording.
+SAY = {
+    "forward": "前進",
+    "back": "後退",
+    "left": "向左",
+    "right": "向右",
+    "up": "上升",
+    "down": "下降",
+    "stop": "停止",
+    "land": "降落",
+}
+
 
 def wav_to_feat(signal: np.ndarray, sr: int = SAMPLE_RATE) -> np.ndarray:
     """Audio waveform -> (N_FRAMES, N_MFCC) MFCC feature, padded/truncated."""

@@ -43,6 +43,10 @@ python lessons/10_voice_train/train_kws.py
 python lessons/10_voice_train/kws_fly.py --selftest
 ```
 
+> **Record in any language.** The labels are just ids, so at each prompt you can
+> say the 中文 word (前進, 上升, 降落, …) — or anything — and use the same word
+> when flying. The recorder shows the suggested 中文 word next to each command.
+
 Read [`kws.py`](kws.py) (features + model + commands), then `record_commands.py`,
 `train_kws.py`, `kws_fly.py`.
 
@@ -108,6 +112,8 @@ python lessons/10_voice_train/record_commands.py --synthetic 16
 python lessons/10_voice_train/train_kws.py
 python lessons/10_voice_train/kws_fly.py --selftest
 ```
+
+> **可用任何語言錄音。** 標籤只是代號，所以每個提示你都可以唸中文（前進、上升、降落…）—— 或任何聲音 —— 飛行時講一樣的詞即可。錄音程式會在每個命令旁顯示建議的中文詞。
 
 請讀 [`kws.py`](kws.py)（特徵 + 模型 + 命令），再看 `record_commands.py`、`train_kws.py`、`kws_fly.py`。
 

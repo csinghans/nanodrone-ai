@@ -22,6 +22,7 @@ from kws import (  # noqa: E402
     DURATION,
     LABELS,
     SAMPLE_RATE,
+    SAY,
     synthetic_feat,
     wav_to_feat,
 )
@@ -57,7 +58,9 @@ def main() -> None:
         print("Recording. When prompted, say the word clearly once.")
         for idx, label in enumerate(LABELS):
             for r in range(args.reps):
-                input(f"  [{label}] {r + 1}/{args.reps} — Enter, then say it...")
+                input(
+                    f"  [{label} / {SAY[label]}] {r + 1}/{args.reps} — Enter, speak..."
+                )
                 time.sleep(0.2)
                 X.append(record_one())
                 y.append(idx)
