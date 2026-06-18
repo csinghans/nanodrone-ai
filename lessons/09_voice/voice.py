@@ -43,18 +43,57 @@ BOX_XY, BOX_Z = 2.5, (0.3, 2.5)
 # "stop" zeroes the setpoint; "land" ends the flight. Order matters — longer /
 # turn / land phrases are checked before the single-word movement ones (so
 # "左轉" is a turn, not a "左" strafe).
+# Keywords list BOTH traditional and simplified Chinese, because the Vosk CN
+# model outputs simplified (前进 / 后退 / 左转 / 右转 / 起飞 / 悬停).
 _CMDS = [
-    ("land", ["land", "降落", "著陸"]),
-    ((0, 0, 0, 1), ["turn left", "左轉", "向左轉"]),
-    ((0, 0, 0, -1), ["turn right", "右轉", "向右轉"]),
-    ((0, 0, 0, 0), ["stop", "hover", "takeoff", "停止", "停", "懸停", "起飛"]),
-    ((1, 0, 0, 0), ["forward", "前進", "向前"]),
-    ((-1, 0, 0, 0), ["backward", "back", "後退"]),
+    ("land", ["land", "降落", "著陸", "着陆"]),
+    ((0, 0, 0, 1), ["turn left", "左轉", "左转", "向左轉", "向左转"]),
+    ((0, 0, 0, -1), ["turn right", "右轉", "右转", "向右轉", "向右转"]),
+    (
+        (0, 0, 0, 0),
+        ["stop", "hover", "takeoff", "停止", "停", "懸停", "悬停", "起飛", "起飞"],
+    ),
+    ((1, 0, 0, 0), ["forward", "前進", "前进", "向前"]),
+    ((-1, 0, 0, 0), ["backward", "back", "後退", "后退"]),
     ((0, 1, 0, 0), ["left", "向左", "左"]),
     ((0, -1, 0, 0), ["right", "向右", "右"]),
     ((0, 0, 1, 0), ["up", "上升", "向上"]),
     ((0, 0, -1, 0), ["down", "下降", "向下"]),
 ]
+
+# Restrict the recognizer to just the command words (a Vosk "grammar"). This
+# hugely improves accuracy for command-and-control with a small model. Words
+# must match the model's vocabulary (simplified for the CN model).
+GRAMMAR = {
+    "en": [
+        "takeoff",
+        "forward",
+        "back",
+        "left",
+        "right",
+        "up",
+        "down",
+        "turn left",
+        "turn right",
+        "stop",
+        "hover",
+        "land",
+    ],
+    "zh": [
+        "起飞",
+        "前进",
+        "后退",
+        "向左",
+        "向右",
+        "上升",
+        "下降",
+        "左转",
+        "右转",
+        "停止",
+        "悬停",
+        "降落",
+    ],
+}
 
 
 def parse_command(text: str):
@@ -89,40 +128,71 @@ class ScriptedVoice:
         return parse_command(phrase)
 
 
-def listen_vosk(lang: str):  # pragma: no cover - needs a mic + model, user runs
-    """Yield recognized phrases from the mic using Vosk (offline). `lang` is
-    'en' or 'zh' and selects the model in lessons/09_voice/model-<lang>/."""
-    import json
-    import queue
+class VoiceListener:  # pragma: no cover - needs a mic + model, user runs this
+    """Listen to the mic with Vosk (offline) on a background thread. poll()
+    returns the latest recognized phrase (or None) WITHOUT blocking, so the
+    flight loop keeps running at full rate. `lang` is 'en' or 'zh' and selects
+    the model in lessons/09_voice/model-<lang>/."""
 
-    import sounddevice as sd
-    from vosk import KaldiRecognizer, Model
+    def __init__(self, lang: str):
+        import json
+        import queue
+        import threading
 
-    model_dir = os.path.join(os.path.dirname(__file__), f"model-{lang}")
-    if not os.path.isdir(model_dir):
-        examples = {"en": "vosk-model-small-en-us", "zh": "vosk-model-small-cn"}
-        print(
-            f"No Vosk model for '{lang}'. Download one and unzip it to\n"
-            f"  {model_dir}\n"
-            f"e.g. {examples.get(lang, '')} from https://alphacephei.com/vosk/models"
-        )
-        sys.exit(1)
-    q = queue.Queue()
+        import sounddevice as sd
+        from vosk import KaldiRecognizer, Model
 
-    def cb(indata, frames, t, status):
-        q.put(bytes(indata))
+        model_dir = os.path.join(os.path.dirname(__file__), f"model-{lang}")
+        if not os.path.isdir(model_dir):
+            examples = {"en": "vosk-model-small-en-us", "zh": "vosk-model-small-cn"}
+            print(
+                f"No Vosk model for '{lang}'. Download one and unzip it to\n"
+                f"  {model_dir}\n"
+                f"e.g. {examples.get(lang, '')} from https://alphacephei.com/vosk/models"
+            )
+            sys.exit(1)
+        self._sd, self._json = sd, json
+        model = Model(model_dir)
+        grammar = json.dumps(GRAMMAR.get(lang, []) + ["[unk]"])
+        try:  # restrict to command words for much better accuracy
+            self._rec = KaldiRecognizer(model, 16000, grammar)
+        except Exception:  # model without grammar support -> open vocabulary
+            self._rec = KaldiRecognizer(model, 16000)
+        self._audio = queue.Queue()
+        self._phrases = queue.Queue()
+        self._stop = threading.Event()
+        self._thread = threading.Thread(target=self._run, daemon=True)
 
-    rec = KaldiRecognizer(Model(model_dir), 16000)
-    with sd.RawInputStream(
-        samplerate=16000, blocksize=8000, dtype="int16", channels=1, callback=cb
-    ):
+    def start(self):
         print("Listening — say: takeoff / forward / turn left / up / stop / land")
-        while True:
-            data = q.get()
-            if rec.AcceptWaveform(data):
-                yield json.loads(rec.Result()).get("text", "")
-            else:
-                yield json.loads(rec.PartialResult()).get("partial", "")
+        self._thread.start()
+
+    def _run(self):
+        def cb(indata, frames, t, status):
+            self._audio.put(bytes(indata))
+
+        with self._sd.RawInputStream(
+            samplerate=16000, blocksize=4000, dtype="int16", channels=1, callback=cb
+        ):
+            while not self._stop.is_set():
+                try:
+                    data = self._audio.get(timeout=0.2)
+                except Exception:
+                    continue
+                if self._rec.AcceptWaveform(data):
+                    text = self._json.loads(self._rec.Result()).get("text", "")
+                    if text.strip():
+                        self._phrases.put(text)
+
+    def poll(self):
+        """Return the most recent recognized phrase since the last poll, or None."""
+        latest = None
+        while not self._phrases.empty():
+            latest = self._phrases.get_nowait()
+        return latest
+
+    def stop(self):
+        self._stop.set()
 
 
 def fly(selftest: bool, lang: str = "en") -> None:
@@ -149,22 +219,22 @@ def fly(selftest: bool, lang: str = "en") -> None:
     dt = env.CTRL_TIMESTEP
     start_t = time.time()
 
-    voice = None
-    script = None
-    if selftest:
-        script = ScriptedVoice()
-    else:
-        voice = listen_vosk(lang)
+    script = ScriptedVoice() if selftest else None
+    listener = None
+    if not selftest:
+        listener = VoiceListener(lang)
+        listener.start()
 
     i = 0
     try:
         while True:
             t = i * dt
-            # --- get the latest command ---
+            # --- get the latest command (non-blocking; sim runs every frame) ---
             if selftest:
                 c = script.command_at(t)
             else:
-                c = parse_command(next(voice))
+                phrase = listener.poll()
+                c = parse_command(phrase) if phrase else None
             if c == "land":
                 landing = True
             elif c is not None:
@@ -210,6 +280,8 @@ def fly(selftest: bool, lang: str = "en") -> None:
     except p.error:
         print("\nSimulator window closed — stopping.")
 
+    if listener is not None:
+        listener.stop()
     try:
         env.close()
     except p.error:

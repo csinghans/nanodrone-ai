@@ -34,6 +34,9 @@ recording*/
 # Temporary peek frames from tools/render_media.py
 assets/_peek_*.png
 
+# Downloaded Vosk speech models (Lesson 9) — large, fetched per machine
+lessons/09_voice/model-*/
+
 # OS / editor
 .DS_Store
 .idea/
