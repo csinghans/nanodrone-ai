@@ -24,6 +24,7 @@
 | 7 | [跟著飛手](07-follow-person.md) | $0 |
 | 8 | [跟隨真人（學習式偵測器）](08-follow-real.md) | $0 |
 | 9 | [語音操控飛行](09-voice.md) | $0 |
+| 10 | [訓練你自己的語音命令](10-voice-train.md) | $0 |
 <!-- LESSON-TABLE:END -->
 
 > 🌐 Switch language: use the language selector at the top-right to switch to **English**.

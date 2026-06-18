@@ -36,6 +36,7 @@ for d in (
     "07_follow_person",
     "08_follow_real",
     "09_voice",
+    "10_voice_train",
 ):
     sys.path.insert(0, os.path.join(ROOT, "lessons", d))
 
@@ -388,6 +389,44 @@ def render_voice():  # Lesson 9 — scripted (bilingual) voice commands flying
     save_gif(frames, "lesson09.gif")
 
 
+def render_kws():  # Lesson 10 — scripted keyword-spotting commands flying
+    import kws_fly as L10
+    from kws import COMMANDS
+
+    env, ctrl = new_env()
+    target = np.array([0.0, 0.0, 1.0])
+    vel, landing = (0, 0, 0), False
+    action = np.zeros((1, 4))
+    dt = env.CTRL_TIMESTEP
+    frames = []
+    i = 0
+    while True:
+        t = i * dt
+        label = L10.scripted_label(t)
+        if label == "land":
+            landing = True
+        elif label is not None:
+            vel = COMMANDS[label]
+        vx, vy, vz = (0, 0, 0) if landing else vel
+        target[0] = float(np.clip(target[0] + vx * 0.8 * dt, -2.5, 2.5))
+        target[1] = float(np.clip(target[1] + vy * 0.8 * dt, -2.5, 2.5))
+        if landing:
+            target[2] = max(0.3, target[2] - 0.4 * dt)
+        else:
+            target[2] = float(np.clip(target[2] + vz * 0.8 * dt, 0.3, 2.5))
+        obs, _, _, _, _ = env.step(action)
+        action[0, :], _, _ = ctrl.computeControlFromState(
+            control_timestep=dt, state=obs[0], target_pos=target
+        )
+        if i % 6 == 0:
+            frames.append(world_frame(env.CLIENT, obs[0][0:3], 2.4, 50, -30))
+        i += 1
+        if landing and target[2] <= 0.35:
+            break
+    env.close()
+    save_gif(frames, "lesson10.gif")
+
+
 if __name__ == "__main__":
     print("Rendering lesson media into assets/ ...")
     render_hover()
@@ -399,4 +438,5 @@ if __name__ == "__main__":
     render_follow_person()
     render_follow_real()
     render_voice()
+    render_kws()
     print("Done.")

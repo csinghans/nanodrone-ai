@@ -3,4 +3,5 @@
 #   pip install -r setup/requirements-extra.txt
 pygame        # Lesson 5/7 — read the Xbox/SDL gamepad
 vosk          # Lesson 9 — offline speech recognition (download a model too)
-sounddevice   # Lesson 9 — microphone capture
+sounddevice   # Lesson 9/10 — microphone capture
+python_speech_features  # Lesson 10 — MFCC features for your own KWS model
