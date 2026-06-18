@@ -35,6 +35,7 @@ for d in (
     "06_follow_me",
     "07_follow_person",
     "08_follow_real",
+    "09_voice",
 ):
     sys.path.insert(0, os.path.join(ROOT, "lessons", d))
 
@@ -339,6 +340,54 @@ def render_lesson4():  # Lesson 4 — static: the model footprint (no sim flight
     print(f"  lesson4.png: {os.path.getsize(out) // 1024} KB")
 
 
+def render_voice():  # Lesson 9 — scripted (bilingual) voice commands flying
+    import voice as V
+
+    env, ctrl = new_env()
+    script = V.ScriptedVoice()
+    target = np.array([0.0, 0.0, 1.0])
+    tyaw, cmd, landing = 0.0, (0, 0, 0, 0), False
+    action = np.zeros((1, 4))
+    dt = env.CTRL_TIMESTEP
+    frames = []
+    i = 0
+    while True:
+        t = i * dt
+        c = script.command_at(t)
+        if c == "land":
+            landing = True
+        elif c is not None:
+            cmd = c
+        fwd, strafe, up, yaw_in = cmd
+        if landing:
+            fwd = strafe = up = yaw_in = 0
+            target[2] = max(0.3, target[2] - 0.4 * dt)
+        tyaw += yaw_in * V.YAW_RATE * dt
+        cc, ss = np.cos(tyaw), np.sin(tyaw)
+        target[0] = float(
+            np.clip(target[0] + (fwd * cc - strafe * ss) * V.SPEED * dt, -2.5, 2.5)
+        )
+        target[1] = float(
+            np.clip(target[1] + (fwd * ss + strafe * cc) * V.SPEED * dt, -2.5, 2.5)
+        )
+        if not landing:
+            target[2] = float(np.clip(target[2] + up * V.SPEED * dt, 0.3, 2.5))
+        obs, _, _, _, _ = env.step(action)
+        action[0, :], _, _ = ctrl.computeControlFromState(
+            control_timestep=dt,
+            state=obs[0],
+            target_pos=target,
+            target_rpy=np.array([0, 0, tyaw]),
+        )
+        if i % 6 == 0:
+            frames.append(world_frame(env.CLIENT, obs[0][0:3], 2.4, 50, -30))
+        i += 1
+        if landing and target[2] <= 0.35:
+            break
+    env.close()
+    save_gif(frames, "lesson09.gif")
+
+
 if __name__ == "__main__":
     print("Rendering lesson media into assets/ ...")
     render_hover()
@@ -349,4 +398,5 @@ if __name__ == "__main__":
     render_follow_me()
     render_follow_person()
     render_follow_real()
+    render_voice()
     print("Done.")

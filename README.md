@@ -57,6 +57,7 @@ The **flight controller** keeps the drone from falling out of the sky (a hard re
 | **6** | Follow-me tracking (visual servoing) | $0 | A drone that follows a moving target by camera |
 | **7** | Follow the pilot | $0 | Drive a person; the drone follows & yaws to face you |
 | **8** | Follow a real person (CNN) | $0 | A *trained* detector follows a person no colour rule can find |
+| **9** | Voice-controlled flight | $0 | Fly by speaking — offline speech model, English + 中文 |
 
 Each lesson follows the same five-part shape: **Why → Concept → Hands-on → Checkpoint → Going further.**
 

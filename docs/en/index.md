@@ -23,6 +23,7 @@ start in simulation for free, graduate to a real Crazyflie that flies itself off
 | 6 | [Follow-me tracking](06-follow-me.md) | $0 |
 | 7 | [Follow the pilot](07-follow-person.md) | $0 |
 | 8 | [Follow a real person (learned detector)](08-follow-real.md) | $0 |
+| 9 | [Voice-controlled flight](09-voice.md) | $0 |
 <!-- LESSON-TABLE:END -->
 
 > 🌐 切換語言：右上角語言選單可切到**繁體中文**。
