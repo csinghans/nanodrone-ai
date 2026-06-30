@@ -68,6 +68,8 @@ jobs:
           python lessons/23_telemetry/replay_flight.py --selftest
       - name: Lesson 24 — Tello backend + safety (selftest, FakeTello)
         run: python lessons/24_tello/fly_tello.py --selftest
+      - name: Lesson 26 — pre-flight gate (selftest)
+        run: python lessons/26_field_test/preflight_check.py --selftest
       - name: Lesson 27 — flight protocol contract (selftest)
         run: python lessons/27_protocol/protocol_demo.py --selftest
       - name: Lesson 28 — parser arena (selftest)
