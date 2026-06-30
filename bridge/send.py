@@ -13,7 +13,9 @@ import json
 import socket
 import sys
 
-TURNS = {"turn_left", "turn_right", "turnleft", "turnright"}
+from nanodrone.protocol import normalize_action
+
+TURNS = {"turn_left", "turn_right"}  # which actions take 'degrees' not 'distance'
 
 
 def main() -> None:
@@ -21,12 +23,15 @@ def main() -> None:
     ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=9000)
     ap.add_argument("action")
-    ap.add_argument("amount", nargs="?", type=float, help="metres, or degrees for turns")
+    ap.add_argument(
+        "amount", nargs="?", type=float, help="metres, or degrees for turns"
+    )
     args = ap.parse_args()
 
     cmd = {"action": args.action}
     if args.amount is not None:
-        cmd["degrees" if args.action.lower() in TURNS else "distance"] = args.amount
+        is_turn = normalize_action(args.action) in TURNS
+        cmd["degrees" if is_turn else "distance"] = args.amount
 
     with socket.create_connection((args.host, args.port), timeout=5) as s:
         s.sendall((json.dumps(cmd) + "\n").encode())

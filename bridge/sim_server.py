@@ -36,55 +36,10 @@ from gym_pybullet_drones.envs.CtrlAviary import CtrlAviary
 from gym_pybullet_drones.utils.enums import DroneModel, Physics
 from gym_pybullet_drones.utils.utils import sync
 
-from nanodrone import chase_cam, setup_view
+from nanodrone import chase_cam, protocol, setup_view
+from nanodrone.protocol import step_target as apply_command
 
-START = np.array([0.0, 0.0, 1.0])
-DEFAULT_DIST = 0.5  # metres per move command if none given
-DEFAULT_DEG = 30.0  # degrees per turn command if none given
-BOX_XY, BOX_Z = 3.0, (0.3, 2.5)  # indoor geofence: 6x6 m, 0.3-2.5 m high
-
-
-def apply_command(cmd: dict, target: np.ndarray, yaw: float):
-    """Nudge the flight target/heading from one command. Returns (yaw, mode)
-    where mode is '', 'land' or 'emergency' for the loop to handle."""
-    action = str(cmd.get("action", "")).lower().replace(" ", "_").replace("-", "_")
-    dist = float(cmd.get("distance", DEFAULT_DIST))
-    deg = float(cmd.get("degrees", DEFAULT_DEG))
-    c, s = math.cos(yaw), math.sin(yaw)  # body -> world rotation
-
-    if action == "takeoff":
-        target[2] = max(target[2], 1.0)
-    elif action == "forward":
-        target[0] += dist * c
-        target[1] += dist * s
-    elif action == "back":
-        target[0] -= dist * c
-        target[1] -= dist * s
-    elif action == "left":  # body +y is left
-        target[0] -= dist * s
-        target[1] += dist * c
-    elif action == "right":
-        target[0] += dist * s
-        target[1] -= dist * c
-    elif action == "up":
-        target[2] += dist
-    elif action == "down":
-        target[2] -= dist
-    elif action in ("turn_left", "turnleft"):
-        yaw += math.radians(deg)
-    elif action in ("turn_right", "turnright"):
-        yaw -= math.radians(deg)
-    elif action in ("stop", "hover"):
-        pass
-    elif action == "land":
-        return yaw, "land"
-    elif action in ("emergency_stop", "emergency", "estop"):
-        return yaw, "emergency"
-
-    target[0] = float(np.clip(target[0], -BOX_XY, BOX_XY))
-    target[1] = float(np.clip(target[1], -BOX_XY, BOX_XY))
-    target[2] = float(np.clip(target[2], *BOX_Z))
-    return yaw, ""
+START = np.array(protocol.START)
 
 
 def serve(cmd_queue: "queue.Queue", host: str, port: int) -> None:
@@ -186,7 +141,7 @@ def run(gui: bool, host: str, port: int, selftest: bool) -> None:
                 )
 
             if landing:
-                target[2] = max(BOX_Z[0], target[2] - 0.4 * dt)
+                target[2] = max(protocol.BOX_Z[0], target[2] - 0.4 * dt)
 
             obs, _, _, _, _ = env.step(action_in)
             action_in[0, :], _, _ = ctrl.computeControlFromState(
