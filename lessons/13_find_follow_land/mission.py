@@ -88,7 +88,7 @@ class Search(State):
     def step(self, m):
         self._t += m.dt
         m.yaw = m.yaw + SCAN_RATE * m.dt  # scan
-        if self._k % PERCEPTION_EVERY == 0:
+        if self._k % m.scene.get("perception_every", PERCEPTION_EVERY) == 0:
             rgb, _dep, _ = m.env._getDroneImages(0, segmentation=False)
             prob = confirm_prob(m.scene["confirm"], m.scene["device"], rgb)
             if prob > CONFIRM_TH:
@@ -118,7 +118,7 @@ class Follow(State):
 
     def step(self, m):
         self._t += m.dt
-        if self._k % PERCEPTION_EVERY == 0:
+        if self._k % m.scene.get("perception_every", PERCEPTION_EVERY) == 0:
             self._track(m)
         self._k += 1
         return m.target, m.yaw
@@ -152,7 +152,7 @@ class Follow(State):
         return False  # follow until a land command interrupts
 
 
-def make_setup(gui: bool):
+def make_setup(gui: bool, perception_every: int, land_at: float):
     def setup(m):
         m.env.IMG_RES = np.array([IMG_W, IMG_H])
         device = "mps" if torch.backends.mps.is_available() else "cpu"
@@ -183,6 +183,8 @@ def make_setup(gui: bool):
             t=0.0,
             track_errs=[],
             landing=False,
+            perception_every=perception_every,
+            land_at=land_at,
         )
         if gui:
             print("Searching for the person; will follow once the gate confirms.")
@@ -202,15 +204,18 @@ def on_frame(m):
     move_person(m.scene["person"], px, py, heading, m.env.CLIENT)
     m.scene["person_xy"] = (px, py)
     m.scene["prev_xy"] = (px, py)
-    if t >= LAND_AT and not m.scene["landing"]:  # the spoken "land" command
+    if (
+        t >= m.scene.get("land_at", LAND_AT) and not m.scene["landing"]
+    ):  # the spoken "land" command
         m.scene["landing"] = True
         m.go(Land())
 
 
-def fly(gui: bool) -> dict:
+def fly(gui: bool, perception_every: int = PERCEPTION_EVERY, land_at: float = LAND_AT):
     plan = [Takeoff(height=FOLLOW_ALT), Search(), Follow()]
     m = Mission(plan, start=(0.0, 0.0, 0.1), gui=gui)
-    return m.run(max_seconds=18.0, setup=make_setup(gui), on_frame=on_frame), m
+    setup = make_setup(gui, perception_every, land_at)
+    return m.run(max_seconds=18.0, setup=setup, on_frame=on_frame), m
 
 
 def selftest() -> None:
