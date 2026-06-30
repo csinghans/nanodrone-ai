@@ -25,6 +25,24 @@
 | 8 | [跟隨真人（學習式偵測器）](08-follow-real.md) | $0 |
 | 9 | [語音操控飛行](09-voice.md) | $0 |
 | 10 | [訓練你自己的語音命令](10-voice-train.md) | $0 |
+| 11 | [任務狀態機（編排 + failsafe）](11-mission.md) | $0 |
+| 12 | [語音驅動的任務轉移](12-voice-mission.md) | $0 |
+| 13 | [多模態 mini-capstone：找人 → 跟隨 → 降落](13-find-follow-land.md) | $0 |
+| 14a | [簡單建圖與自主巡邏](14a-map-patrol.md) | $0 |
+| 14b | [板載預算下的感知（把能力縫回 GAP8）](14b-onboard-budget.md) | $0 |
+| 16 | [畢業專題：設計你自己的任務](16-capstone.md) | $0 |
+| 17 | [單目深度估計（訓練一個 dense 模型）](17-depth.md) | $0 |
+| 18 | [光流 / 視覺里程計（無 GPS 自估狀態）](18-flow.md) | $0 |
+| 19 | [更難的多障礙 RL（把感知併入觀測）](19-multi-avoid.md) | $0 |
+| 20 | [域隨機化（縮小 sim-to-real 落差）](20-domain-rand.md) | $0 |
+| 21 | [知識蒸餾 + 模型壓縮](21-distill.md) | $0 |
+| 22 | [把多個能力蒸餾成單一板載策略（Track B 畢業專題）](22-unified.md) | $0 |
+| 23 | [飛行黑盒子：遙測與回放](23-telemetry.md) | $0 |
+| 24 | [你的第一台真機：平價 Tello（Wi-Fi）](24-tello.md) | $0 |
+| 25 | [誠實量測 sim-to-real 落差](25-sim2real.md) | $0 |
+| 26 | [實地測試 SOP 與台灣法規](26-field-test.md) | $0 |
+| 27 | [一套飛行協定，到處重用](27-protocol.md) | $0 |
+| 28 | [解析器擂台（招牌反例，量化版）](28-parser-arena.md) | $0 |
 <!-- LESSON-TABLE:END -->
 
 > 🌐 Switch language: use the language selector at the top-right to switch to **English**.

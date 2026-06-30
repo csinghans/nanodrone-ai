@@ -43,3 +43,22 @@ nav:
   - "Lesson 9 — Voice control": 09-voice.md
   - "Lesson 10 — Train your voice": 10-voice-train.md
   - "Roadmap — beyond Lesson 10": ROADMAP.md
+  - "Lesson 11 — Mission state machine": 11-mission.md
+  - "Lesson 12 — Voice-driven missions": 12-voice-mission.md
+  - "Lesson 13 — Find / follow / land": 13-find-follow-land.md
+  - "Lesson 14a — Mapping & patrol": 14a-map-patrol.md
+  - "Lesson 14b — On-board budget": 14b-onboard-budget.md
+  - "Lesson 16 — Graduation project": 16-capstone.md
+  - "Lesson 17 — Monocular depth": 17-depth.md
+  - "Lesson 18 — Optical flow / VO": 18-flow.md
+  - "Lesson 19 — Multi-obstacle RL": 19-multi-avoid.md
+  - "Lesson 20 — Domain randomization": 20-domain-rand.md
+  - "Lesson 21 — Distillation": 21-distill.md
+  - "Lesson 22 — Unified policy": 22-unified.md
+  - "Lesson 23 — Flight black box": 23-telemetry.md
+  - "Lesson 24 — First real drone (Tello)": 24-tello.md
+  - "Lesson 25 — Sim-to-real gap": 25-sim2real.md
+  - "Lesson 26 — Field test & regulations": 26-field-test.md
+  - "Lesson 27 — Flight protocol": 27-protocol.md
+  - "Lesson 28 — Parser arena": 28-parser-arena.md
+  - "DroneVoice — Apple app & real drones": 29-dronevoice.md

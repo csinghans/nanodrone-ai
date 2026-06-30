@@ -21,18 +21,43 @@ BLOB = "https://github.com/csinghans/nanodrone-ai/blob/main"
 ANCHOR = '<a name="中文"></a>'
 
 
-def rewrite_links(text: str, lesson_dir: str) -> str:
+def rewrite_links(text: str, base: str) -> str:
+    """Rewrite repo-relative links to absolute GitHub URLs. `base` is the page's
+    source dir relative to the repo root (e.g. 'lessons/11_mission')."""
     # Demo media (../../assets/x) -> raw.githubusercontent URL.
     text = re.sub(r"\]\(\.\./\.\./assets/([^)]+)\)", rf"]({RAW}/assets/\1)", text)
 
-    # Remaining relative links are code files in the lesson folder -> blob URL.
+    # Remaining relative links resolve against `base` (handles ../.. up to the
+    # repo root, e.g. ../../nanodrone/mission.py -> blob/main/nanodrone/...).
     def repl(m):
         target = m.group(1)
-        if target.startswith(("http", "#")):
+        if target.startswith(("http", "#", "/")):
             return m.group(0)
-        return f"]({BLOB}/lessons/{lesson_dir}/{target})"
+        rel = os.path.normpath(os.path.join(base, target)).replace(os.sep, "/")
+        return f"]({BLOB}/{rel})"
 
     return re.sub(r"\]\(([^)]+)\)", repl, text)
+
+
+# Bilingual pages outside lessons/ (same README structure): (source, out, base).
+EXTRA_PAGES = [
+    ("apple/DroneVoice/README.md", "29-dronevoice.md", "apple/DroneVoice"),
+]
+
+
+def _gen_extra() -> None:
+    for src, docs_name, base in EXTRA_PAGES:
+        with open(os.path.join(ROOT, src), encoding="utf-8") as f:
+            text = f.read()
+        if ANCHOR not in text:
+            continue
+        en_raw, zh_raw = text.split(ANCHOR, 1)
+        for sub, raw in (("en", en_raw), ("zh-TW", zh_raw)):
+            body = _strip_lang_lines(raw).strip() + "\n"
+            out = os.path.join(ROOT, "docs", sub, docs_name)
+            with open(out, "w", encoding="utf-8") as f:
+                f.write(rewrite_links(body, base))
+            print(f"  wrote docs/{sub}/{docs_name}")
 
 
 def _strip_lang_lines(text: str) -> str:
@@ -101,7 +126,7 @@ def main() -> None:
         for sub, body in (("en", en), ("zh-TW", zh)):
             out = os.path.join(ROOT, "docs", sub, docs_name)
             with open(out, "w", encoding="utf-8") as f:
-                f.write(rewrite_links(body, lesson_dir))
+                f.write(rewrite_links(body, f"lessons/{lesson_dir}"))
             print(f"  wrote docs/{sub}/{docs_name}")
 
         # Only the H1 marks a bonus lesson (the word may appear in the body too).
@@ -111,6 +136,7 @@ def main() -> None:
         rows_by_lang["en"].append((nn, docs_name, _title(en_raw), bonus))
         rows_by_lang["zh-TW"].append((nn, docs_name, _title(zh_raw), bonus))
 
+    _gen_extra()
     for lang in ("en", "zh-TW"):
         _inject_table(lang, rows_by_lang[lang])
 
