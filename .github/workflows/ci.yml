@@ -52,6 +52,8 @@ jobs:
         run: python lessons/09_voice/voice.py --selftest
       - name: Lesson 10 — KWS flight loop (selftest, no mic/model)
         run: python lessons/10_voice_train/kws_fly.py --selftest
+      - name: Lesson 11 — mission state machine (selftest, headless)
+        run: python lessons/11_mission/mission_demo.py --selftest
       - name: Bridge — DroneVoice sim server (selftest, headless)
         run: python bridge/sim_server.py --selftest
 
