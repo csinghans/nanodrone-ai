@@ -249,6 +249,8 @@ class Mission:
         self.target = self.start.copy()
         self.yaw = 0.0
         self.dt = 0.0
+        self.env = None  # the CtrlAviary, exposed during run() (camera access etc.)
+        self.scene: dict = {}  # lesson scratch space (models, actors) set in setup()
 
         self.state: State | None = None
         self._idx = -1
@@ -287,7 +289,14 @@ class Mission:
         self._enter(state)
 
     # -- the shared flight loop (this is what every lesson used to copy) --
-    def run(self, max_seconds: float = 20.0, event_source=None, event_map=None) -> dict:
+    def run(
+        self,
+        max_seconds: float = 20.0,
+        event_source=None,
+        event_map=None,
+        setup=None,
+        on_frame=None,
+    ) -> dict:
         """Fly the mission. Two modes:
 
         * **plan mode** (default): step through the list of states given to the
@@ -296,6 +305,12 @@ class Mission:
           (a `poll() -> event|None`) and `go()` to the state `event_map` maps the
           event to — used to drive transitions by voice (Lesson 12). Between
           events the drone idle-holds; a `Land` event (or state) ends the run.
+
+        Optional hooks for richer missions (Lesson 13+):
+        * `setup(self)` runs once after the env exists (set `self.env.IMG_RES`,
+          spawn actors, load models, stash handles on `self.scene`).
+        * `on_frame(self)` runs every frame after sensing (move actors, inject a
+          transition with `self.go(...)`). States read the camera via `self.env`.
         """
         import time
 
@@ -316,6 +331,9 @@ class Mission:
             user_debug_gui=False,
         )
         ctrl = DSLPIDControl(drone_model=DroneModel.CF2X)
+        self.env = env  # expose to states (camera) and setup()
+        if setup is not None:
+            setup(self)  # lesson sets IMG_RES, spawns actors, loads models
         if self.gui:
             setup_view(env.CLIENT)
 
@@ -339,6 +357,10 @@ class Mission:
                 # 1. SENSE — read the live drone state
                 self.pos = obs[0][0:3].copy()
                 self.yaw_now = float(obs[0][9])
+
+                # 1a. SCENE — move actors / inject transitions (Lesson 13)
+                if on_frame is not None:
+                    on_frame(self)
 
                 # 1b. EVENTS — a command can switch the whole phase (Lesson 12)
                 if event_driven:

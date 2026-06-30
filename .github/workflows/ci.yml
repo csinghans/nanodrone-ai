@@ -56,6 +56,8 @@ jobs:
         run: python lessons/11_mission/mission_demo.py --selftest
       - name: Lesson 12 — voice-driven mission (selftest, scripted events)
         run: python lessons/12_voice_mission/voice_mission.py --selftest
+      # Lesson 13 trains/loads a torch model, so (like Lessons 3/8 training) it
+      # is verified locally, not in this torch-free smoke job.
       - name: Bridge — DroneVoice sim server (selftest, headless)
         run: python bridge/sim_server.py --selftest
 
