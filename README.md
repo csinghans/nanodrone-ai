@@ -60,6 +60,30 @@ The **flight controller** keeps the drone from falling out of the sky (a hard re
 | **9** | Voice-controlled flight | $0 | Fly by speaking — offline speech model, English + 中文 |
 | **10** | Train your own voice commands | $0 | Train a keyword-spotting model on *your* voice |
 
+**Beyond Lesson 10** (the post-L10 roadmap, now built — see [docs/en/ROADMAP.md](docs/en/ROADMAP.md)):
+
+| Lesson | Topic | Cost | You'll build |
+|--------|-------|------|--------------|
+| **11** | Mission state machine + failsafe | $0 | Orchestrate phases (takeoff→go→land) on one `nanodrone.mission` state machine |
+| **12** | Voice-driven mission transitions | $0 | Spoken commands switch whole phases, not just nudges |
+| **13** | Multimodal mini-capstone | $0 | Take off → find a person → follow → land on "land" (re-trains a confirm CNN) |
+| **14a** | Mapping & autonomous patrol | $0 | Build a 2D occupancy map from depth while patrolling |
+| **14b** | On-board budget (quantize + latency) | $0 | Sew perception back to GAP8: int8 fit + latency-vs-tracking curve |
+| **16** | Graduation project | $0 | Design + grade *your own* mission (template + validator + rubric) |
+| **17** | Monocular depth estimation | $0 | Train a dense depth CNN from one camera (first dense model) |
+| **18** | Optical flow / visual odometry | $0 | Estimate motion with no GPS from a downward camera |
+| **19** | Harder multi-obstacle RL | $0 | Generalize avoidance over random layouts (perception in the obs) |
+| **20** | Domain randomization | $0 | Shrink the sim-to-real gap by jittering training images |
+| **21** | Distillation + compression | $0 | Shrink a model ~6× while keeping accuracy |
+| **22** | Unified on-board policy | $0 | Distill avoid + follow into one tiny network |
+| **23** | Flight black box | $0 | Telemetry logging + faithful replay |
+| **24** | First real drone (Tello) | ~US$100 | Same protocol on a Wi-Fi Tello, plus a reusable safety layer |
+| **25** | Measure the sim-to-real gap | $0 | Quantify how much a sim model loses on a real-ish camera |
+| **26** | Field-test SOP + regulations | $0 | A GO/NO-GO pre-flight gate + Taiwan CAA checklist |
+| **27** | Extract the flight protocol | $0 | One schema (`nanodrone.protocol`) reused everywhere |
+| **28** | Parser arena (counter-example) | $0 | When a general model + constraints beats training your own |
+| **DroneVoice** | Apple app → on-device LLM → real drone | $0 sw | Fly by speaking from an iPhone (Phases 2–5; needs Apple hardware) |
+
 Each lesson follows the same five-part shape: **Why → Concept → Hands-on → Checkpoint → Going further.**
 
 ## Quickstart (Lesson 0)
