@@ -143,22 +143,38 @@ class GoTo(State):
     name = "GoTo"
 
     def __init__(
-        self, xyz, face: bool = False, tol: float = REACH_TOL, safe: bool = True
+        self,
+        xyz,
+        face: bool = False,
+        tol: float = REACH_TOL,
+        safe: bool = True,
+        speed: float = 0.8,
     ):
         self.goal = np.asarray(xyz, dtype=float)
         self.face = face
         self.tol = tol
         self.safe = safe
+        self.speed = speed  # how fast to march the setpoint (m/s)
 
     def on_enter(self, m: "Mission") -> None:
-        m.target = self.goal.copy()  # left un-clipped so an unsafe goal is visible
+        # March the *commanded target* toward the goal at `speed` rather than
+        # jumping the whole way: a far instant setpoint makes the controller
+        # pitch hard, lose lift and tumble. Start from the current target.
+        self._cur = m.target.astype(float).copy()
         if self.face:
             dx, dy = self.goal[0] - m.pos[0], self.goal[1] - m.pos[1]
             if math.hypot(dx, dy) > 1e-3:
                 m.yaw = math.atan2(dy, dx)
 
     def step(self, m: "Mission"):
-        return self.goal, m.yaw
+        delta = self.goal - self._cur
+        d = float(np.linalg.norm(delta))
+        stepsize = self.speed * m.dt
+        if d > stepsize:
+            self._cur = self._cur + delta / d * stepsize
+        else:
+            self._cur = self.goal.copy()
+        return self._cur, m.yaw  # left un-clipped so an unsafe goal still trips
 
     def is_done(self, m: "Mission") -> bool:
         return float(np.linalg.norm(m.pos - self.goal)) < self.tol
