@@ -1,0 +1,26 @@
+{"text": "forward 2 metres", "expected": {"action": "forward", "distance": 2.0}}
+{"text": "go forward 1.5 m", "expected": {"action": "forward", "distance": 1.5}}
+{"text": "往前兩公尺", "expected": {"action": "forward", "distance": 2.0}}
+{"text": "前進 3 公尺", "expected": {"action": "forward", "distance": 3.0}}
+{"text": "back 1 metre", "expected": {"action": "back", "distance": 1.0}}
+{"text": "後退 2 公尺", "expected": {"action": "back", "distance": 2.0}}
+{"text": "up 0.5 m", "expected": {"action": "up", "distance": 0.5}}
+{"text": "上升 1 公尺", "expected": {"action": "up", "distance": 1.0}}
+{"text": "down 0.5 metre", "expected": {"action": "down", "distance": 0.5}}
+{"text": "下降 1 公尺", "expected": {"action": "down", "distance": 1.0}}
+{"text": "left 1 m", "expected": {"action": "left", "distance": 1.0}}
+{"text": "向左 1 公尺", "expected": {"action": "left", "distance": 1.0}}
+{"text": "right 2 m", "expected": {"action": "right", "distance": 2.0}}
+{"text": "向右 2 公尺", "expected": {"action": "right", "distance": 2.0}}
+{"text": "turn left 90 degrees", "expected": {"action": "turn_left", "degrees": 90.0}}
+{"text": "turn right 45 degrees", "expected": {"action": "turn_right", "degrees": 45.0}}
+{"text": "左轉 90 度", "expected": {"action": "turn_left", "degrees": 90.0}}
+{"text": "右轉 30 度", "expected": {"action": "turn_right", "degrees": 30.0}}
+{"text": "takeoff", "expected": {"action": "takeoff"}}
+{"text": "起飛", "expected": {"action": "takeoff"}}
+{"text": "land", "expected": {"action": "land"}}
+{"text": "降落", "expected": {"action": "land"}}
+{"text": "stop", "expected": {"action": "stop"}}
+{"text": "停止", "expected": {"action": "stop"}}
+{"text": "hover", "expected": {"action": "stop"}}
+{"text": "emergency", "expected": {"action": "emergency_stop"}}

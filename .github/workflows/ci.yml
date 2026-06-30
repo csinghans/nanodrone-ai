@@ -64,6 +64,10 @@ jobs:
         run: python lessons/16_capstone/validate_mission.py
       - name: Lesson 27 — flight protocol contract (selftest)
         run: python lessons/27_protocol/protocol_demo.py --selftest
+      - name: Lesson 28 — parser arena (selftest)
+        run: python bridge/eval_parsers.py --selftest
+      - name: Lesson 28 — text command stand-in (selftest)
+        run: python bridge/send_text.py --selftest "go forward 2 metres"
       - name: Bridge — DroneVoice sim server (selftest, headless)
         run: python bridge/sim_server.py --selftest
 
