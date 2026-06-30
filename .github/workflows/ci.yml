@@ -60,6 +60,8 @@ jobs:
       # is verified locally, not in this torch-free smoke job.
       - name: Lesson 14a — mapping & patrol (selftest, headless)
         run: python lessons/14a_map_patrol/patrol.py --selftest
+      - name: Lesson 16 — capstone template + validator (headless)
+        run: python lessons/16_capstone/validate_mission.py
       - name: Bridge — DroneVoice sim server (selftest, headless)
         run: python bridge/sim_server.py --selftest
 
