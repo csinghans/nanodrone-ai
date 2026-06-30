@@ -62,6 +62,10 @@ jobs:
         run: python lessons/14a_map_patrol/patrol.py --selftest
       - name: Lesson 16 — capstone template + validator (headless)
         run: python lessons/16_capstone/validate_mission.py
+      - name: Lesson 23 — telemetry record + replay (selftest)
+        run: |
+          python lessons/23_telemetry/record_flight.py --selftest
+          python lessons/23_telemetry/replay_flight.py --selftest
       - name: Lesson 27 — flight protocol contract (selftest)
         run: python lessons/27_protocol/protocol_demo.py --selftest
       - name: Lesson 28 — parser arena (selftest)
