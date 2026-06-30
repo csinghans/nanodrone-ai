@@ -255,6 +255,7 @@ class Mission:
         self.in_failsafe = False
         self.failsafe_reason = ""
         self.history: list[str] = []  # names of states entered, for assertions
+        self.transitions = 0  # number of event-driven go() switches (Lesson 12)
 
     # -- transitions --
     def _enter(self, state: State) -> None:
@@ -279,9 +280,30 @@ class Mission:
             self.failsafe_reason = reason
             self._enter(self._failsafe)
 
+    def go(self, state: State) -> None:
+        """Switch to a state immediately (event-driven, Lesson 12). Counts a
+        transition. Use this when a command — not the plan — picks what's next."""
+        self.transitions += 1
+        self._enter(state)
+
     # -- the shared flight loop (this is what every lesson used to copy) --
-    def run(self, max_seconds: float = 20.0) -> dict:
+    def run(self, max_seconds: float = 20.0, event_source=None, event_map=None) -> dict:
+        """Fly the mission. Two modes:
+
+        * **plan mode** (default): step through the list of states given to the
+          constructor (Lesson 11).
+        * **event mode** (pass `event_source`): each frame poll `event_source`
+          (a `poll() -> event|None`) and `go()` to the state `event_map` maps the
+          event to — used to drive transitions by voice (Lesson 12). Between
+          events the drone idle-holds; a `Land` event (or state) ends the run.
+        """
         import time
+
+        event_driven = event_source is not None
+        if event_driven and event_map is None:
+            from .mission_events import default_event_map  # lazy: avoids a cycle
+
+            event_map = default_event_map()
 
         env = CtrlAviary(
             drone_model=DroneModel.CF2X,
@@ -306,7 +328,10 @@ class Mission:
         obs, _, _, _, _ = env.step(action)
         self.pos = obs[0][0:3].copy()
         self.yaw_now = float(obs[0][9])
-        self._advance()  # enter plan[0]
+        if self.plan:
+            self._advance()  # plan mode: enter plan[0]
+        elif event_driven:
+            self._enter(Hover(seconds=1e9))  # event mode: idle-hold, await command
 
         i = 0
         try:
@@ -315,13 +340,26 @@ class Mission:
                 self.pos = obs[0][0:3].copy()
                 self.yaw_now = float(obs[0][9])
 
+                # 1b. EVENTS — a command can switch the whole phase (Lesson 12)
+                if event_driven:
+                    event = event_source.poll()
+                    if event and event in event_map:
+                        self.go(event_map[event]())
+
                 # 2. DECIDE — ask the current phase what setpoint it wants
                 want_target, want_yaw = self.state.step(self)
 
-                # 2b. WATCHDOG — a phase asking to leave the box is a breach
-                if not self.in_failsafe and not in_fence(
-                    want_target, self.fence_xy, self.fence_z
-                ):
+                # 2b. WATCHDOG — leaving the horizontal box or going over the
+                # ceiling is a breach -> Failsafe. (Going *below* the floor is
+                # just clipped, not a breach: that is the ground / landing, and
+                # a grounded idle-hold legitimately sits there.)
+                tx, ty, tz = want_target
+                breach = (
+                    abs(tx) > self.fence_xy + 1e-6
+                    or abs(ty) > self.fence_xy + 1e-6
+                    or tz > self.fence_z[1] + 1e-6
+                )
+                if not self.in_failsafe and breach:
                     self.request_failsafe("geofence")
                     want_target, want_yaw = self.state.step(self)
 
@@ -341,10 +379,16 @@ class Mission:
                     chase_cam(env.CLIENT, obs[0][0:3])
                     sync(i, wall_start, self.dt)
 
-                # 4. TRANSITION — advance when the phase reports done
+                # 4. TRANSITION — move on when the phase reports done
                 if self.state.is_done(self):
-                    if not self._advance():
-                        break
+                    if self.in_failsafe or isinstance(self.state, Land):
+                        break  # landed (safely or as planned) — mission over
+                    if self._advance():
+                        pass  # plan mode: entered the next planned state
+                    elif event_driven:
+                        self._enter(Hover(seconds=1e9))  # idle-hold for next event
+                    else:
+                        break  # plan exhausted
                 i += 1
         finally:
             try:
@@ -361,4 +405,5 @@ class Mission:
             "in_failsafe": self.in_failsafe,
             "failsafe_reason": self.failsafe_reason,
             "landed": self.pos[2] <= LAND_HEIGHT + 0.12,
+            "transitions": self.transitions,
         }
