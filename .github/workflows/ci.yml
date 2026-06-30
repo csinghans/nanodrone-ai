@@ -78,6 +78,12 @@ jobs:
         run: python bridge/send_text.py --selftest "go forward 2 metres"
       - name: Bridge — DroneVoice sim server (selftest, headless)
         run: python bridge/sim_server.py --selftest
+      - name: DroneVoice — protocol-stream conformance (selftest)
+        run: python bridge/validate_protocol.py --selftest
+      - name: DroneVoice Phase 5a — Tello server (selftest, FakeTello)
+        run: python hardware/tello_server.py --selftest
+      - name: DroneVoice Phase 5b — Crazyflie server (selftest, FakeCrazyflie)
+        run: python hardware/crazyflie_server.py --selftest
 
   docs-parity:
     name: Bilingual docs parity (en <-> zh-TW)
