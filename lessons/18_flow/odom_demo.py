@@ -134,7 +134,7 @@ def main() -> None:
 
     ratio = drift / max(path_len, 1e-6)
     print(
-        f"ODOM OK: {len(est_path)} flow updates over {path_len:.1f} m path, "
+        f"ODOM OK: {len(est_path) - 1} flow updates over {path_len:.1f} m path, "
         f"final drift {drift:.2f} m ({100 * ratio:.0f}% of distance), saved {OUT_PNG}"
     )
     if selftest:

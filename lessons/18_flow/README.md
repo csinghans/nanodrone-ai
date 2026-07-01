@@ -45,7 +45,7 @@ in the torch-free CI.
 
 ```
 FLOW OK: 220 pairs, vel MAE=0.072 m/s (vs 0.169 predict-mean baseline), int8 footprint=86.6 KB (<512 fits)
-ODOM OK: 49 flow updates over 4.4 m path, final drift 0.99 m (22% of distance)
+ODOM OK: 48 flow updates over 4.4 m path, final drift 0.99 m (22% of distance)
 ```
 
 `train_flow.py --selftest` asserts the net **clearly beats** the predict-mean
@@ -101,7 +101,7 @@ python lessons/18_flow/odom_demo.py                               # 存 output/o
 
 ```
 FLOW OK: 220 pairs, vel MAE=0.072 m/s (vs 0.169 predict-mean baseline), int8 footprint=86.6 KB (<512 fits)
-ODOM OK: 49 flow updates over 4.4 m path, final drift 0.99 m (22% of distance)
+ODOM OK: 48 flow updates over 4.4 m path, final drift 0.99 m (22% of distance)
 ```
 
 `train_flow.py --selftest` 驗證網路**明顯贏過** predict-mean baseline（真的學到流）且塞得進 GAP8。

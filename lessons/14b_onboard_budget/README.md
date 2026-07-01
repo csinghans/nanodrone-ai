@@ -54,7 +54,7 @@ like Lessons 3/8 training — they're verified locally, not in the torch-free CI
 
 ```
 QUANT OK: int8 model 25.8 KB < 512 KB budget, val acc fp32 1.00 -> int8 1.00 (drop 0.00), ONNX 105.6 KB
-LATENCY OK: 20ms->14.6deg, 80ms->12.9deg, 160ms->62.8deg (tracking error grows with inference latency); grid 20x20 int8 = 0.4 KB fits 256 KB
+LATENCY OK: 20ms->14.6deg, 80ms->12.9deg, 160ms->62.8deg (tracking error grows with inference latency); grid 20x20 int32 = 1.6 KB fits 256 KB
 ```
 
 `quantize_confirm --selftest` asserts the int8 model fits and the accuracy drop
@@ -118,7 +118,7 @@ python lessons/14b_onboard_budget/latency_sim.py          # 延遲 → 追蹤誤
 
 ```
 QUANT OK: int8 model 25.8 KB < 512 KB budget, val acc fp32 1.00 -> int8 1.00 (drop 0.00), ONNX 105.6 KB
-LATENCY OK: 20ms->14.6deg, 80ms->12.9deg, 160ms->62.8deg (tracking error grows with inference latency); grid 20x20 int8 = 0.4 KB fits 256 KB
+LATENCY OK: 20ms->14.6deg, 80ms->12.9deg, 160ms->62.8deg (tracking error grows with inference latency); grid 20x20 int32 = 1.6 KB fits 256 KB
 ```
 
 `quantize_confirm --selftest` 驗證 int8 模型塞得下、精度掉幅很小；`latency_sim --selftest` 驗證

@@ -37,7 +37,7 @@ no hardware (and no `djitellopy` / `cflib` installed), so the self-tests run in 
 
 ```
 TELLO-SERVER OK: served 5 protocol cmds -> [takeoff, move_forward, move_up, rotate_counter_clockwise, land], battery-gate enforced, app-equivalent
-CF-SERVER OK: mapped protocol cmds -> motion_commander calls [forward, turn_right, up, land], battery-gate + commander-always-lands enforced
+CF-SERVER OK: mapped protocol cmds -> motion_commander calls [forward, turn_right, up, land], battery-gate + emergency-cuts-motors + commander-always-lands enforced
 ```
 
 ## Safety (non-negotiable for real flight)
@@ -81,7 +81,7 @@ pip install cflib       && python hardware/crazyflie_server.py    # 真 Crazyfli
 
 ```
 TELLO-SERVER OK: served 5 protocol cmds -> [takeoff, move_forward, move_up, rotate_counter_clockwise, land], battery-gate enforced, app-equivalent
-CF-SERVER OK: mapped protocol cmds -> motion_commander calls [forward, turn_right, up, land], battery-gate + commander-always-lands enforced
+CF-SERVER OK: mapped protocol cmds -> motion_commander calls [forward, turn_right, up, land], battery-gate + emergency-cuts-motors + commander-always-lands enforced
 ```
 
 ## 安全（真機飛行不可妥協）

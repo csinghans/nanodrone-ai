@@ -45,7 +45,7 @@ def run_at(latency_ms: float) -> float:
 
 def grid_footprint_kb() -> tuple:
     g = OccupancyGrid(extent=3.0, res=0.3)  # the Lesson 14a map
-    return g.n, g.n * g.n / 1024.0  # one int8 byte per cell
+    return g.n, g.grid.nbytes / 1024.0  # its real allocation (int32 accumulators)
 
 
 def main() -> None:
@@ -56,7 +56,7 @@ def main() -> None:
     curve = ", ".join(f"{ms}ms->{err:.1f}deg" for ms, err in results)
     print(
         f"LATENCY OK: {curve} (tracking error grows with inference latency); "
-        f"grid {n}x{n} int8 = {kb:.1f} KB fits 256 KB"
+        f"grid {n}x{n} int32 = {kb:.1f} KB fits 256 KB"
     )
     if selftest:
         lo_err, hi_err = results[0][1], results[-1][1]
