@@ -41,7 +41,7 @@ def rewrite_links(text: str, base: str) -> str:
 
 # Bilingual pages outside lessons/ (same README structure): (source, out, base).
 EXTRA_PAGES = [
-    ("apple/DroneVoice/README.md", "29-dronevoice.md", "apple/DroneVoice"),
+    ("apple/DroneVoice/README.md", "30-dronevoice.md", "apple/DroneVoice"),
 ]
 
 

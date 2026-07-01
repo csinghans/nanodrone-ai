@@ -1,6 +1,6 @@
 # Roadmap — Lesson 10 之後的後續課程規劃
 
-> 本文件是這條後續課程的規劃藍圖 —— **L11–L28 與 DroneVoice 現已全部實作**（見各課資料夾與 `nanodrone/` 模組）。它延續 nanodrone-ai 的招牌主題與鐵則：全程 **$0、sim-first**，每課採 **五段式**（為什麼／概念／動手做／驗收／延伸），維護 **en + zh-TW 雙語 docs**，每支腳本都有 `--selftest` 印 `XXX OK` + assert。終極目標不變：GAP8 上 int8、<512KB 的離線板載自飛。
+> 本文件是這條後續課程的規劃藍圖 —— **L11–L29 與 DroneVoice 現已全部實作**（見各課資料夾與 `nanodrone/` 模組）。它延續 nanodrone-ai 的招牌主題與鐵則：全程 **$0、sim-first**，每課採 **五段式**（為什麼／概念／動手做／驗收／延伸），維護 **en + zh-TW 雙語 docs**，每支腳本都有 `--selftest` 印 `XXX OK` + assert。終極目標不變：GAP8 上 int8、<512KB 的離線板載自飛。
 
 ## 一、現況與設計原則
 
@@ -19,7 +19,7 @@
 後續課程整併成五條軌道：
 
 - **Track A — 編排主線（Orchestration）**：L11 狀態機骨幹 → L12 語音驅動轉移 → L13 多模態 mini-capstone → L16 畢業專題。這是所有走主線新手的必經路徑。
-- **Track B — 板載落地與感知深化（On-device / perception depth）**：L14a 建圖巡邏 → L14b 板載收斂；再往深處走 L17 單目深度 → L18 光流／VO → L19 多障礙 RL（餵感知）→ L20 域隨機化 → L21 蒸餾+壓縮 → L22 多能力蒸餾成單一板載策略。這條把「模擬器目前閒置的能力」逐步榨成自訓 int8 小模型，是招牌主題的深化主幹，也是把課程**貼近真機**而非帶離真機的關鍵。
+- **Track B — 板載落地與感知深化（On-device / perception depth）**：L14a 建圖巡邏 → L14b 板載收斂；再往深處走 L17 單目深度 → L18 光流／VO → L19 多障礙 RL（餵感知）→ L20 域隨機化 → L21 蒸餾+壓縮 → L22 多能力蒸餾成單一板載策略。這條把「模擬器目前閒置的能力」逐步榨成自訓 int8 小模型，是招牌主題的深化主幹，也是把課程**貼近真機**而非帶離真機的關鍵。L29 再為本軌收尾，把這條線從*反應式*推進到*預判式*：一個 nano V-JEPA 世界模型，預測下一個隱空間（而非像素）做預判式避障，仍蒸餾在 512KB 內。
 - **Track C — DroneVoice Apple App（並行選修，需 Apple 硬體）**：L27 協定抽取（前置技術債）→ L28 解析評測擂台（反例對照組的量化地基）→ Phase 2 語音入口 → Phase 3 on-device LLM 解析（反例對照組）→ Phase 4 SwiftUI + 雙向遙測 + app failsafe → Phase 5 sim→真機（5a Tello 先、5b Crazyflie 收束）。無 iPhone 者皆有 100% 等價的 Python 驗收。
 - **Track D — 進階 going-further（純文件，不成課）**：swarm、追蹤魯棒性（卡爾曼）、segmentation 標資料等指路文件，給「想再往前」的人指路，不擋畢業。（感測器噪音／domain randomization 已升格為正式課 L20，從本軌移除。）
 - **Track E — 真機落地基礎設施（sim-to-real bring-up）**：L23 飛行黑盒子（遙測+回放）→ L24 Tello 平價真機踏腳石 → L25 sim-to-real 落差量測 → L26 實地測試 SOP + 台灣法規。這條把「會飛」變成「合法、安全、可回看、可上真機驗證地飛」，是主線／Track B 訓出的模型真正落地前的最後一哩。
@@ -50,7 +50,7 @@
 11. **L21 蒸餾+壓縮**（進階）— 依賴 L4、L17+L20、L3。需要前面養出的較大模型當 teacher 才有「壓縮」意義。
 12. **L22 多能力蒸餾成單一策略**（進階，板載深化線 capstone）— 依賴 L8、L19、L21、L4。必須等避障（L19）與跟隨（L8）兩個 teacher 都在。
 
-> Track B 排序原則：先解鎖新感知模態（深度、光流）→ 餵進更難決策（多障礙 RL）→ 做 sim-to-real 縮差（域隨機化）→ 上板瘦身（蒸餾／壓縮）→ 多能力合一（蒸餾 capstone）。
+> Track B 排序原則：先解鎖新感知模態（深度、光流）→ 餵進更難決策（多障礙 RL）→ 做 sim-to-real 縮差（域隨機化）→ 上板瘦身（蒸餾／壓縮）→ 多能力合一（蒸餾 capstone）→ **預判未來（L29 nano 世界模型：隱空間預測做預判式避障、蒸餾上機）**——為 Track B 收尾的預測前沿。
 
 ### Track E 真機落地分支（先 $0 sim，後標硬體）
 
@@ -74,7 +74,7 @@
 
 ## 四、各課程 / Phase Outline（五段式）
 
-課程順序：L11 → L12 → L13 → L14a → L14b → L16 → L17 → L18 → L19 → L20 → L21 → L22 → L23 → L24 → L25 → L26 → L27 → L28 → DroneVoice Phase 2 → Phase 3 → Phase 4 → Phase 5a → Phase 5b。
+課程順序：L11 → L12 → L13 → L14a → L14b → L16 → L17 → L18 → L19 → L20 → L21 → L22 → L23 → L24 → L25 → L26 → L27 → L28 → DroneVoice Phase 2 → Phase 3 → Phase 4 → Phase 5a → Phase 5b。**（前沿補充：L29 nano 世界模型——屬 Track B，可在 L22 之後立即動工；此處排在最後，作為最新加入。）**
 
 ### [Lesson 11] 任務編排骨幹：把飛行迴圈變成狀態機 + 內建 Failsafe（Track A）
 
@@ -580,6 +580,27 @@ Takeoff
 
 ---
 
+### [Lesson 29] nano 世界模型：隱空間預測做預判式避障（V-JEPA，蒸餾上機）（Track B 預測前沿）
+
+- **成本** $0（純 sim、自產序列）｜**難度** 進階｜**前置** L17（`TinyDronet`/`TinyDepthNet` conv 編碼器）、L18（雙幀時序概念）、L19（避障基線，用來做 proactive）、L21（蒸餾）、L4（int8 footprint 算術）
+
+**為什麼**：目前每個模型都是*反應式*——L17 深度與 L19 RL 回答的都是「對*現在*已經很近的障礙怎麼辦」。高速下這太遲：加速度有上限的 27 克無人機，等柱子塞滿畫面根本轉不過來。**世界模型**補上*預判*：學會場景將如何變化，讓無人機對*即將*發生的事先動作——這正是 Track D 只指了路的前沿。天真的做法是預測下一張*影像*（擴散／像素生成）：既慢又幻想出控制器用不到的細節。本課走 **V-JEPA** 路線——預測下一個*隱空間 embedding*、絕不預測像素——招牌主題在前沿再現：真正的 V-JEPA 是 Orin 級的十億參數模型，永遠塞不進 GAP8，所以你訓練並蒸餾出自己的 *nano* 版，壓在 512KB 內。
+
+**概念**：三個小網路，全部沿用課程 conv stack、全部可 int8：**Encoder** `f_θ`（影像→64 維隱向量，L3 `TinyDronet.features`）、動作條件 **Predictor** `g_φ`（`(z_t,a_t)→ẑ_{t+k}`，小 MLP，預測*殘差*，於是「什麼都不變」是免費基線）、線性 **collision head**（`ẑ→P(k 步內太近)`——預判訊號）。隱空間預測不用像素 loss、也不塌縮，靠一個 stop-gradient 的 **EMA target encoder**（V-JEPA/BYOL）加 VICReg 式變異數護欄；loss 就是 `‖g_φ(f_θ(x_t),a_t) − sg(f_EMA(x_{t+k}))‖² + 變異數護欄 + BCE(collision)`。**V-JEPA vs 4D-GS（誠實對照）**：4D-GS 是顯式幾何世界模型——L14a 2D occupancy grid 的重量級 3D+時間表親；度量精準又擬真，但延遲隨 Gaussian 數擴張 → Orin 級，且外推時產生幾何 floater（像素幻覺的幾何版）。V-JEPA 用度量接地換到固定、可蒸餾、無幻覺的隱空間預測——這就是它在此當機上骨幹的原因，4D-GS 則留在延伸裡當*離線*監督。
+
+**動手做（交付物）**：
+- `lessons/29_world_model/gen_wm_dataset.py`：真的往前飛穿越隨機多柱佈局，每個控制步串流相機，切成 (x_t, a_t=速度, x_{t+k}) 三元組 + *免費*的未來碰撞旗標（k 步內平面距離 < DANGER_R）。`--selftest` 印 `WM-DATA OK: N seqs, horizon k=8 steps, collide-rate=0.XX, ...`；驗證兩類都存在。
+- `lessons/29_world_model/train_world_model.py`：nano V-JEPA（`Encoder` + EMA `target` + `Predictor` + `CollisionHead`），隱空間 loss，footprint 用 L4 `n_params/1024` 公式。`--selftest` 印 `WORLD-MODEL OK: latent MSE=0.XX (no-op baseline Y.YY), collision AUC=0.XX, int8 footprint=ZZ KB (<512 fits)`；驗證 predictor 贏過「未來＝現在」的 no-op 基線、AUC>0.70、footprint<512。
+- `lessons/29_world_model/proactive_avoid.py`：同一條航道飛 reactive（柱子*現在*近了才閃）vs proactive（*預測* k 步後近了就閃），在加速度受限下讓晚反應真的付出淨空代價；存俯視 PNG。`--selftest` 印 `PROACTIVE OK: reactive min-clear=A m (avoid@R), proactive min-clear=B m (avoid@P), lead=+X steps (~Wms earlier), crashes r/p = 0/0`；驗證 proactive 更早觸發且保住 ≥ 的淨空、不墜機。
+
+**驗收 ✅**：`WM-DATA OK` + `WORLD-MODEL OK` + `PROACTIVE OK` 綠（本機，因 trainer 載 torch——比照 L3/L8/L13）；兩支無 torch 的腳本（`gen_wm_dataset`、`proactive_avoid`）也在 CI 跑。
+
+**延伸**：(1) **把隱空間度量接地**——用 4D-GS *離線*（sim / Orin）產度量 occupancy，加一個 grounding loss 讓 `ẑ_{t+k}` 解碼成可碰撞檢測的距離，用 V-JEPA 的延遲換到 4D-GS 的接地（ICRA/CVPR 級貢獻）；(2) 把 `proactive_avoid` 的 privileged look-ahead 換成訓練好的 collision head（視覺閉環，誠實的 L13 fallback 慣例）；(3) 把預測的 time-to-collision 餵進 L19 的 RL 觀測，做出*學出來*的預判避障。誠實落差：完整 V-JEPA 2 / 4D-GS 是 Orin 級——這裡是在 GAP8 預算下教原理。
+
+**復用**：L3 `train_cnn.py` 的 `TinyDronet.features` 當 encoder 骨幹（import，L4 模式）；L3/L17 `gen_dataset` 的 `CtrlAviary+DSLPIDControl` 取樣迴圈與 `env._getDroneImages` 擷取；L14a/L19 的多柱場景概念；L4 `quantize_cnn.py` 的 `n_params/1024` int8 footprint 檢查；`train_rl.py` 的 `_save_trajectory_plot` 俯視圖。誠實標為**課程首次**：EMA target encoder、隱空間（無像素）JEPA loss、動作條件殘差 predictor、變異數防塌縮護欄、未來碰撞 head、預判式避障度量——課程做過監督／RL／蒸餾，但從未做自監督隱空間預測。
+
+---
+
 ## 五、總表
 
 > **必修／選修標示**：★ = 核心必修主線；◆ = 進階分支（對「想真的上板／落地」是核心，對只想跑完 sim 主線者選修）；○ = 並行選修（需特定硬體／平台）。
@@ -609,12 +630,14 @@ Takeoff
 | DroneVoice Phase 4 | SwiftUI app + 雙向遙測 + app failsafe | C Apple | ○ | 軟體 $0（需 iPhone/Xcode） | 進階 | L27、Phase 3、L23、L4/L24 |
 | DroneVoice Phase 5a | Tello over Wi-Fi（AI 機外，協定不變換 controller） | C Apple | ○ | 硬體 ~US$100（FakeTello CI $0） | 進階 | L27、Phase 4、L24 |
 | DroneVoice Phase 5b | Crazyflie 離線自飛（回到課程終點） | C Apple | ○ | 硬體 ≈ L4 ~US$545（FakeCrazyflie CI $0） | 進階 | L27、Phase 4、L4、L22 |
+| L29 | nano 世界模型：隱空間預測做預判式避障（V-JEPA，蒸餾上機） | B 板載 / 感知 | ◆ | $0 | 進階 | L17、L18、L19、L21、L4 |
 
 ### 編號邏輯說明
 
 - L11–L16 主幹維持原排序與依賴圖；**L15 刻意空號**（swarm 已降級為 Track D 純文件 going-further，不佔課程編號，亦不復用此號以免與「被砍的 swarm」混淆）。L14 拆成 L14a（建圖）/ L14b（板載收斂）兩課以容納補上的板載缺口。L16 維持畢業專題的「最後一課」象徵編號。
 - 感知深化、真機落地、Apple 產品線三條深化線一律用 **L17 起的連續新號段**，不插號進 L11–L16（避免擾動已穩定的依賴圖）。
 - Phase 4/5 維持「Phase」命名（與 phase 1–3 一致，標示為 bridge 支線而非主線 Lesson）。
+- **L29** 取下一個空號，作為 Track B 的*預測前沿*：新能力一律取下一個編號、不插進已穩定的 L11–L28 圖，故 L29 雖編號排在 Track C 的 L27–L28 之後，仍歸 Track B。產生的 DroneVoice docs 頁改號為 `30-dronevoice.md`，讓 L29 排在它之前。
 
 ## 六、設計取捨：哪些點子合併、為何砍掉 swarm
 
@@ -631,6 +654,8 @@ Takeoff
 6. **砍掉 swarm（原 L15 提案）**。雙機 swarm 與終極「單機板載自主」關聯最弱、重構面最大、維護成本最高、對招牌主題零貢獻，**降級為純文件型 going-further（Track D），不成課、不佔編號**。它若回頭拆 L11 地基或拖累畢業節奏，代價不值。為保留延伸彈性，L11 `mission runner` 仍**不寫死 `num_drones`**，但不為它開課。
 
 7. **修正浮誇 reuse**。建圖巡邏（L14a）的 occupancy-grid 與多障礙場景 builder 如實標為**新增能力**（L3 只有一根柱子且綁在 RL 專用 `AvoidAviary`，不可重用），並抽到 `nanodrone.map` 供後續共用。所有新增深度／光流／DR 課的「上採樣 head、scale-invariant loss、整張影像運算、噪音／randomization」等都逐一標明是 sim 第一次用到，不假裝沿用。
+
+8. **世界模型是 *nano 隱空間* 預測器（V-JEPA），既非像素生成、也非完整 4D-GS**。在 27 克無人機上，世界模型有兩個死路：預測像素（擴散——慢、且幻想出控制器用不到的細節）與顯式 4D 幾何（4D-GS——度量精準卻 Orin 級、延遲隨場景擴張）。L29 兩者都不走：以 EMA-target 聯合嵌入 loss 預測下一個*隱空間*（無像素），算力固定、可蒸餾在 512KB int8 內。4D-GS 留作誠實對照（L14a occupancy grid 的重量級表親）與延伸裡的*離線*幾何接地 teacher——絕不當機上引擎。招牌主題在前沿再現：Orin 級世界模型上不了機，所以你訓練自己的 nano 版。
 
 ## 七、風險與取捨備註
 
@@ -656,6 +681,7 @@ Takeoff
 - Track C 整體維護成本最高——依賴 Apple 平台版本、CI 無法真正驗 on-device LLM 行為（只能驗 JSON schema）。**因此標為並行選修、與主線完全解耦**：JSON 協定是穩定 contract，Track A/B 不受 Apple API 變動影響。L27 協定抽取 + L28 評測擂台把風險再壓低一層。
 - **L11 `nanodrone/mission.py` 與 L27 `nanodrone/protocol.py` 一旦成為地基，任何 API 變動都可能悄悄弄壞下游**（mission 影響 L12–L16/L23；protocol 影響 L24/Phase 2–5）。**必須在 `.github` 建一個跨課整合 CI**（不只各課自己的 `--selftest`），覆蓋 `mission`/`protocol`/`safety`/`telemetry` 四個共用模組，在 API 變動時即時抓出回歸。
 - Track B 新課全部 sim 自產資料、`--selftest` 收斂，維護成本低；唯 L19 RL 與 L21/L22 蒸餾訓練時間較長，CI 用少步數冒煙測試（不在 CI 跑完整訓練）。
+- **L29（世界模型）** 是唯一做自監督隱空間預測的課，失效模式是*表徵塌縮*；靠 EMA target + VICReg 式變異數項防守，且 `--selftest` 以「贏過 no-op 基線」把關，塌縮的 encoder 會被擋下。比照 L3/L8/L13，其 trainer 載 torch，於本機驗證；無 torch 的冒煙 job 跑它的資料生成（`gen_wm_dataset`）與無 torch 的 `proactive_avoid`。這是*原理* demo，非生產級 V-JEPA。
 
 **最關鍵的策略取捨**：把課程從「更聰明的桌面模擬編排」拉回「板載／離線／真機自主」招牌，靠這幾條主線完成：(1) **L14b** 把編排能力縫回 GAP8/int8/<512KB；(2) **L13** 強制再訓一個確認分類器，讓「訓你自己的模型」主題在 capstone 前再現；(3) **L11 內建 Failsafe**、**L16 把板載考量與 failsafe 列入 rubric 硬門檻**，並在 docs 顯式交代主題轉折弧與 Phase 3 反例對照；(4) **Track B 的 L17→L18→L20→L21→L22** 把「模擬器閒置能力 → 自訓 dense／光流小模型 → 抗 sim-to-real → 壓進 512KB → 多能力合一上板」走完整條，讓「訓你自己的小模型」主題從「再現一次」升級為「貫穿到底」；(5) **新增 Track E（L23–L26）** 把「sim-first 基礎設施 → 平價真機踏腳石 → 量測落差 → 合法安全飛」做實，正面回應「誠實對待 sim-to-real」原則。**砍掉的 swarm 維持降級**，不復用其編號、不回頭拆地基。
 

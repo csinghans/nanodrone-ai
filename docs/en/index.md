@@ -43,6 +43,7 @@ start in simulation for free, graduate to a real Crazyflie that flies itself off
 | 26 | [Field-test SOP & Taiwan regulations](26-field-test.md) | $0 |
 | 27 | [One flight protocol, reused everywhere](27-protocol.md) | $0 |
 | 28 | [The parser arena (the signature counter-example, quantified)](28-parser-arena.md) | $0 |
+| 29 | [Nano world model: latent-space prediction for proactive avoidance](29-world-model.md) | $0 |
 <!-- LESSON-TABLE:END -->
 
 > 🌐 切換語言：右上角語言選單可切到**繁體中文**。

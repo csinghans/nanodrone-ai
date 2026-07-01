@@ -82,6 +82,7 @@ The **flight controller** keeps the drone from falling out of the sky (a hard re
 | **26** | Field-test SOP + regulations | $0 | A GO/NO-GO pre-flight gate + Taiwan CAA checklist |
 | **27** | Extract the flight protocol | $0 | One schema (`nanodrone.protocol`) reused everywhere |
 | **28** | Parser arena (counter-example) | $0 | When a general model + constraints beats training your own |
+| **29** | Nano world model (V-JEPA, on-board) | $0 | Predict the *next latent* to dodge obstacles *before* they're close (distilled int8 < 512 KB) |
 | **DroneVoice** | Apple app → on-device LLM → real drone | $0 sw | Fly by speaking from an iPhone (Phases 2–5; needs Apple hardware) |
 
 Each lesson follows the same five-part shape: **Why → Concept → Hands-on → Checkpoint → Going further.**

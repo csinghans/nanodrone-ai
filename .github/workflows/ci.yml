@@ -76,6 +76,12 @@ jobs:
         run: python bridge/eval_parsers.py --selftest
       - name: Lesson 28 — text command stand-in (selftest)
         run: python bridge/send_text.py --selftest "go forward 2 metres"
+      - name: Lesson 29 — world-model sequence dataset (selftest, headless sim)
+        run: python lessons/29_world_model/gen_wm_dataset.py --selftest
+      # Lesson 29's trainer loads torch (like Lessons 3/8/13), so it is verified
+      # locally, not in this torch-free smoke job. proactive_avoid is torch-free:
+      - name: Lesson 29 — proactive vs reactive avoidance (selftest)
+        run: python lessons/29_world_model/proactive_avoid.py --selftest
       - name: Bridge — DroneVoice sim server (selftest, headless)
         run: python bridge/sim_server.py --selftest
       - name: DroneVoice — protocol-stream conformance (selftest)
