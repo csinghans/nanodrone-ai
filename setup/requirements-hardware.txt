@@ -1,6 +1,8 @@
-# Extra packages for Lesson 4 only. NOT needed for the simulation lessons (0-3).
-# Install into the conda env when you start the hardware lesson:
+# Extra packages for the REAL-hardware lessons only (4, 24, DroneVoice Phase 5).
+# Not needed for any simulation lesson — those run on the conda env alone.
+# Install into the conda env when you reach a hardware lesson:
 #   conda activate nanodrone-ai
 #   pip install -r setup/requirements-hardware.txt
-cflib        # talk to a real Crazyflie over the Crazyradio
-onnx         # export the trained CNN to ONNX for the GAP8 toolchain
+cflib        # Lesson 4 / Phase 5b — talk to a real Crazyflie over the Crazyradio
+onnx         # Lesson 4 / 14b / 21 — export a trained model to ONNX for the GAP8 toolchain
+djitellopy   # Lesson 24 / Phase 5a — fly a real DJI/Ryze Tello over Wi-Fi
