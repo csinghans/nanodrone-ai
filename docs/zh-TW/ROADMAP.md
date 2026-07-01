@@ -1,6 +1,6 @@
 # Roadmap — Lesson 10 之後的後續課程規劃
 
-> 本文件為規劃藍圖；課程尚未實作，編號與細節可能隨開發調整。它延續 nanodrone-ai 的招牌主題與鐵則：全程 **$0、sim-first**，每課採 **五段式**（為什麼／概念／動手做／驗收／延伸），維護 **en + zh-TW 雙語 docs**，每支腳本都有 `--selftest` 印 `XXX OK` + assert。終極目標不變：GAP8 上 int8、<512KB 的離線板載自飛。
+> 本文件是這條後續課程的規劃藍圖 —— **L11–L28 與 DroneVoice 現已全部實作**（見各課資料夾與 `nanodrone/` 模組）。它延續 nanodrone-ai 的招牌主題與鐵則：全程 **$0、sim-first**，每課採 **五段式**（為什麼／概念／動手做／驗收／延伸），維護 **en + zh-TW 雙語 docs**，每支腳本都有 `--selftest` 印 `XXX OK` + assert。終極目標不變：GAP8 上 int8、<512KB 的離線板載自飛。
 
 ## 一、現況與設計原則
 

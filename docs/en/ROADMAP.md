@@ -1,6 +1,6 @@
 # Roadmap — beyond Lesson 10
 
-> This document is a planning blueprint; the lessons are not yet implemented, and the numbering and details may shift as development proceeds. It carries forward nanodrone-ai's signature themes and ground rules: everything stays **$0 and sim-first**, every lesson follows the **five-part structure** (Why / Concept / Hands-on / Checkpoint / Going further), the docs stay **bilingual (en + zh-TW)**, and every script ships a `--selftest` that prints `XXX OK` + asserts. The end goal is unchanged: int8 on GAP8, an offline on-board self-flight under 512KB.
+> This document is the blueprint for the post-Lesson-10 course — **L11–L28 and DroneVoice are now all implemented** (see each lesson folder and the `nanodrone/` modules). It carries forward nanodrone-ai's signature themes and ground rules: everything stays **$0 and sim-first**, every lesson follows the **five-part structure** (Why / Concept / Hands-on / Checkpoint / Going further), the docs stay **bilingual (en + zh-TW)**, and every script ships a `--selftest` that prints `XXX OK` + asserts. The end goal is unchanged: int8 on GAP8, an offline on-board self-flight under 512KB.
 
 ## 1. Status & design principles
 
