@@ -32,8 +32,17 @@ from tello_backend import FakeTello, TelloBackend  # noqa: E402
 
 # On a low battery, refuse take-off AND further moves; still allow land / stop /
 # hover / emergency so the drone can always come down safely.
-_GATED = {"takeoff", "forward", "back", "left", "right", "up", "down",
-          "turn_left", "turn_right"}
+_GATED = {
+    "takeoff",
+    "forward",
+    "back",
+    "left",
+    "right",
+    "up",
+    "down",
+    "turn_left",
+    "turn_right",
+}
 
 
 def handle(backend, cmd) -> bool:
