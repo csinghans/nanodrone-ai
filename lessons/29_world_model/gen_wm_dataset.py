@@ -12,22 +12,35 @@ is a tiny controlled experiment:
      passes through a fresh pillar layout — not one long drifting flight.
   2. **Approach.** The drone cruises forward under a *commanded* velocity
      setpoint (the same "forward" command the controller will use later).
-  3. **Intervention.** At a random step we switch to one of six high-level
-     commands — forward / slow / veer_left / veer_right / climb / hover — and
-     **hold it** for the rest of the rollout.
+  3. **Interventions.** The rest of the flight is a chain of held *segments*:
+     every ~1 s we draw one of six high-level commands — forward / slow /
+     veer_left / veer_right / climb / hover — and **hold it** for the whole
+     segment before drawing the next.
 
 Holding the command is the whole point. A world model that must answer "what
 happens if I *keep doing this* for the next k steps?" needs training pairs
-where one action really was kept for k steps. And we record the **commanded
-setpoint**, not the measured velocity — the controller can only ever feed the
-model a command, so that is what the model must condition on.
+where one action really was kept for k steps — and every segment switch is one
+more counterfactual contrast ("same view, different command, different
+outcome"), which is exactly the action-conditioning the step-3 planner needs.
+We record the **commanded setpoint**, not the measured velocity: the controller
+can only ever feed the model a command, so that is what it must condition on.
 
 Labels stay free (the simulator's signature move), and are now *multi-horizon*:
 for each step we keep the nearest-pillar distance, so step 2 can derive
 "dangerously close within 4 / 8 / 16 / 32 control steps" (~83 / 167 / 333 /
-667 ms at 48 Hz) for any horizon. No pixel target anywhere: step 2 predicts in
-*latent* space. This file only stores raw frames + held commands + distances
-(+ the pillar layout, used for evaluation only — never for control).
+667 ms at 48 Hz) for any horizon. And the simulator hands out one more freebie:
+**counterfactual** danger labels (`counterfactual_labels`) — for *every* frame
+and *every* candidate command, roll the command forward kinematically through
+the known pillar layout and label whether it would get dangerously close. The
+executed action tells the model what *did* happen; the counterfactuals teach it
+to *rank* the actions it did not take, which is exactly what a planner asks.
+(Honest note: that oracle is straight-line kinematics — no PID transient — and
+it exists only because sim labels are privileged anyway; with real-world data
+you would be back to executed-action supervision and need far more of it.)
+
+No pixel target anywhere: step 2 predicts in *latent* space. This file only
+stores raw frames + held commands + distances (+ the pillar layout, used for
+labels and evaluation — never for control).
 
 Honest notes: pillars are visual-only (no contact physics), so "danger" is a
 planar distance, measured even when the drone flies straight through — which
@@ -50,10 +63,10 @@ import numpy as np
 IMG_RES = 64  # camera + network input (matches L3/L8/L17)
 HORIZONS = (4, 8, 16, 32)  # label horizons in control steps (~83..667 ms @ 48 Hz)
 H_MAX = HORIZONS[-1]
-HORIZON_K = 8  # legacy single-horizon alias (train step 2 reads HORIZONS)
 DANGER_R = 0.7  # planar distance (m) that counts as "dangerously close" soon
 COLLISION_R = 0.22  # planar distance (m) that counts as a crash (matches L3/L19)
 CTRL_HZ = 48
+FOV_HALF_DEG = 28  # camera half-FOV (the sim renders 60 deg; keep a margin)
 START = np.array([0.0, 0.0, 1.0])
 
 # The six high-level commands (m/s + yaw-rate). World frame with yaw held at 0,
@@ -173,20 +186,27 @@ def nearest_planar(pos_xy, pillars) -> float:
     return float(min(np.linalg.norm(np.asarray(pos_xy) - np.array(q)) for q in pillars))
 
 
-def _pick_intervention(rng, length: int):
-    """(start_step, action_id) for one rollout, or (-1, -1) when the corridor is
-    too short to fit an approach segment plus a full H_MAX window after the switch."""
-    lo = max(8, length // 5)
-    hi = length - H_MAX - 4
-    if hi <= lo:
-        return -1, -1
-    return int(rng.integers(lo, hi)), int(rng.integers(0, len(ACTION_NAMES)))
+def _schedule(rng, length: int, passive: bool):
+    """Per-step (action-id, segment-id) arrays for one rollout: an all-forward
+    approach, then ~1 s held segments each drawing a fresh random command."""
+    ids = np.full(length, FORWARD, dtype=np.int16)
+    seg = np.zeros(length, dtype=np.int16)
+    if passive:
+        return ids, seg
+    t, s = int(rng.integers(24, 49)), 0
+    while t < length:
+        s += 1
+        n = int(rng.integers(H_MAX + 8, H_MAX + 25))  # hold 40..56 steps (~1 s)
+        ids[t : t + n] = int(rng.integers(0, len(ACTION_NAMES)))
+        seg[t : t + n] = s
+        t += n
+    return ids, seg
 
 
 def gen(n_rollouts: int, length: int, seed: int = 0) -> dict:
     """Fly `n_rollouts` fresh intervention trials and return the raw sequences:
     frames (uint8), held commands, nearest-pillar distances, drone positions,
-    plus per-rollout metadata (pillar layout, intervention id/step, in-path flag)."""
+    plus per-rollout metadata (pillar layout, per-step segment ids, in-path flag)."""
     env = make_env()
     cmd = VelCommander(make_ctrl(), env.CTRL_TIMESTEP)
     rng = np.random.default_rng(seed)
@@ -194,12 +214,12 @@ def gen(n_rollouts: int, length: int, seed: int = 0) -> dict:
     R, L = n_rollouts, length
     frames = np.zeros((R, L, IMG_RES, IMG_RES, 3), dtype=np.uint8)
     actions = np.zeros((R, L, 4), dtype=np.float32)
+    act_id = np.zeros((R, L), dtype=np.int16)
+    seg = np.zeros((R, L), dtype=np.int16)
     dists = np.zeros((R, L), dtype=np.float32)
     pos = np.zeros((R, L, 3), dtype=np.float32)
     pillars_meta = np.full((R, 3, 2), np.nan, dtype=np.float32)
     in_path = np.zeros(R, dtype=bool)
-    interv_start = np.full(R, -1, dtype=np.int16)
-    interv_id = np.full(R, -1, dtype=np.int16)
 
     for r in range(R):
         obs, _ = env.reset(seed=int(rng.integers(2**31 - 1)))
@@ -207,45 +227,89 @@ def gen(n_rollouts: int, length: int, seed: int = 0) -> dict:
         in_path[r] = r % 2 == 0
         pillars = spawn_pillars(env, rng, in_path=bool(in_path[r]))
         pillars_meta[r, : len(pillars)] = pillars
-        if r % 3 != 2:  # every third rollout stays passive (all-forward)
-            interv_start[r], interv_id[r] = _pick_intervention(rng, L)
+        act_id[r], seg[r] = _schedule(rng, L, passive=(r % 3 == 2))
 
         state = obs[0]
         for t in range(L):
             frames[r, t] = grab_frame(env)
             pos[r, t] = state[0:3]
             dists[r, t] = nearest_planar(state[0:2], pillars)
-            a_id = interv_id[r] if 0 <= interv_start[r] <= t else FORWARD
-            actions[r, t] = ACTION_VECS[a_id]
-            obs, _, _, _, _ = env.step(cmd.rpm(state, ACTION_VECS[a_id]).reshape(1, 4))
+            v_cmd = ACTION_VECS[act_id[r, t]]
+            actions[r, t] = v_cmd
+            obs, _, _, _, _ = env.step(cmd.rpm(state, v_cmd).reshape(1, 4))
             state = obs[0]
-        tag = "passive" if interv_id[r] < 0 else ACTION_NAMES[interv_id[r]]
+        held = sorted({ACTION_NAMES[i] for i in act_id[r][seg[r] > 0]})
         print(
-            f"  rollout {r + 1}/{R} "
-            f"({'in-path' if in_path[r] else 'clear'}, {tag}@{interv_start[r]})"
+            f"  rollout {r + 1}/{R} ({'in-path' if in_path[r] else 'clear'}, "
+            f"{'passive' if seg[r].max() == 0 else '+'.join(held)})"
         )
 
     env.close()
     return {
         "frames": frames,
         "actions": actions,
+        "act_id": act_id,
+        "seg": seg,
         "dists": dists,
         "pos": pos,
         "pillars": pillars_meta,
         "in_path": in_path,
-        "interv_start": interv_start,
-        "interv_id": interv_id,
         "horizons": np.array(HORIZONS, dtype=np.int16),
         "a_norm": A_NORM,
         "danger_r": np.float32(DANGER_R),
     }
 
 
-def window_valid(interv_start: int, length: int, t: int, k: int) -> bool:
+def window_valid(seg_row, t: int, k: int) -> bool:
     """True when the command really was held over [t, t+k]: the window fits in
-    the rollout and does not straddle the intervention switch."""
-    s = length if interv_start < 0 else int(interv_start)
-    return t + k < length and not (t < s <= t + k)
+    the rollout and stays inside one held segment."""
+    return t + k < len(seg_row) and seg_row[t] == seg_row[t + k]
+
+
+def counterfactual_labels(data: dict) -> tuple:
+    """The simulator's counterfactual oracle: for every frame and every candidate
+    command, would holding it get dangerously close within each horizon?
+
+    Straight-line kinematics through the stored pillar layout (an approximation:
+    no PID transient — stated, and symmetric across candidates, so rankings
+    survive). Returns (labels, visible):
+      labels  uint8 (R, L, n_actions, n_horizons)
+      visible uint8 (R, L, n_actions) — 1 when the label is *answerable from
+              this frame*: either it is negative ("see nothing -> safe"), or
+              the threatening pillar sits inside the camera FOV. A single-frame
+              model cannot know about a pillar beside or behind it, so training
+              or grading it on those labels would only teach noise. (The real
+              fix is memory or yaw-aligned flight — see the honest notes.)
+
+    Valid at *every* step, because it never needs the flown future — this is
+    what densifies the action-conditioning supervision beyond the executed
+    command."""
+    R, L = data["frames"].shape[:2]
+    taus = np.arange(H_MAX + 1) / CTRL_HZ  # (K+1,)
+    cf = np.zeros((R, L, len(ACTION_VECS), len(HORIZONS)), dtype=np.uint8)
+    vis = np.ones((R, L, len(ACTION_VECS)), dtype=np.uint8)
+    cos_fov = np.cos(np.radians(FOV_HALF_DEG))
+    for r in range(R):
+        pil = data["pillars"][r]
+        pil = pil[~np.isnan(pil[:, 0])]
+        if not len(pil):
+            continue
+        p0 = data["pos"][r, :, :2]  # (L, 2)
+        for i, v in enumerate(ACTION_VECS):
+            # paths: (L, K+1, 2) -> distances to every pillar: (L, K+1, P)
+            path = p0[:, None, :] + taus[None, :, None] * v[:2]
+            d = np.linalg.norm(path[:, :, None, :] - pil[None, None], axis=3)
+            for j, k in enumerate(HORIZONS):
+                cf[r, :, i, j] = (d[:, : k + 1].min(axis=(1, 2)) < DANGER_R).astype(
+                    np.uint8
+                )
+            # visibility of the threat (camera looks along +x, yaw held at 0):
+            # a positive label caused by an out-of-FOV pillar is unanswerable
+            threat = pil[d.min(axis=1).argmin(axis=1)]  # (L, 2)
+            rel = threat - p0
+            in_fov = rel[:, 0] > np.linalg.norm(rel, axis=1) * cos_fov
+            vis[r, :, i] = np.where(cf[r, :, i].any(axis=1) & ~in_fov, 0, 1)
+    return cf, vis
 
 
 def as_pairs(data: dict, k: int) -> dict:
@@ -256,7 +320,7 @@ def as_pairs(data: dict, k: int) -> dict:
     X, Xk, Aout, c = [], [], [], []
     for r in range(R):
         for t in range(L - k):
-            if not window_valid(int(data["interv_start"][r]), L, t, k):
+            if not window_valid(data["seg"][r], t, k):
                 continue
             X.append(F[r, t])
             Xk.append(F[r, t + k])
@@ -289,13 +353,13 @@ def main() -> None:
         pairs = as_pairs(data, k)
         rates[k] = (len(pairs["c"]), float(pairs["c"].mean()))
     rate_str = ", ".join(f"k={k}: n={n} pos={p:.2f}" for k, (n, p) in rates.items())
-    held = [ACTION_NAMES[i] if i >= 0 else "passive" for i in data["interv_id"]]
+    n_seg = int(sum(data["seg"][r].max() for r in range(n_roll)))
+    held = sorted({ACTION_NAMES[i] for r in range(n_roll) for i in data["act_id"][r]})
     print(
         f"WM-DATA OK: {n_roll} rollouts x {length} steps @ {CTRL_HZ} Hz, "
-        f"held-command interventions={sum(i >= 0 for i in data['interv_id'])}, "
-        f"labels [{rate_str}], saved {OUT}"
+        f"{n_seg} held intervention segments, labels [{rate_str}], saved {OUT}"
     )
-    print(f"  interventions drawn: {sorted(set(held))}")
+    print(f"  commands held: {held}")
 
     if args.selftest:
         assert data["frames"].dtype == np.uint8, "frames must be uint8"
@@ -305,8 +369,8 @@ def main() -> None:
         assert drift < 0.1, f"rollouts do not reset to START (drift {drift:.2f} m)"
         # commands are commanded, not measured: they must live on the action set
         assert np.abs(data["actions"]).max() <= np.abs(ACTION_VECS).max() + 1e-6
-        assert (data["interv_id"] >= 0).any(), "no intervention rollouts"
-        assert (data["interv_id"] < 0).any(), "no passive rollouts"
+        assert n_seg >= n_roll, "too few held segments for counterfactual contrast"
+        assert len(held) >= 4, f"too little action diversity ({held})"
         for k, (n, p) in rates.items():
             assert n > 0, f"no valid windows at k={k}"
             assert 0.03 < p < 0.97, f"labels too imbalanced at k={k} ({p:.2f})"
