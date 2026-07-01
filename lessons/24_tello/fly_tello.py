@@ -4,8 +4,11 @@ Lesson 24 — fly a real Tello with the course's protocol
 The first real drone. Same JSON protocol as the sim — only the controller behind
 it changes (PyBullet -> Tello). The AI runs on your laptop and sends commands
 over Wi-Fi; that's NOT the offline GAP8 goal, it's the safe, cheap first real
-flight and proof the protocol is portable. Failsafe is now real, so the
-`nanodrone.safety` layer (battery / link / geofence) gates every flight.
+flight and proof the protocol is portable. Failsafe is now real: the
+`nanodrone.safety` battery gate is enforced before take-off. (Its link-watchdog
+and geofence are pure functions exercised in --selftest, but a Tello flies
+*relative* moves with no on-board position, so an absolute geofence can't
+constrain it — a Crazyflie with a Flow deck could.)
 
 Run:
   python lessons/24_tello/fly_tello.py --selftest   # FakeTello, asserts (no drone)

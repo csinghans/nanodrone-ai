@@ -14,15 +14,18 @@ Run:
 
 import sys
 
+from nanodrone import safety
 from nanodrone.protocol import DEFAULT_DEG, DEFAULT_DIST, normalize_action
 
 
 class FakeMotionCommander:
     """Records the MotionCommander calls a real Crazyflie would receive."""
 
-    def __init__(self):
+    def __init__(self, battery: int = 90):
         self.calls = []
         self.landed = False
+        self.motors_cut = False
+        self._battery = battery
 
     def forward(self, d):
         self.calls.append(("forward", d))
@@ -52,6 +55,13 @@ class FakeMotionCommander:
         self.landed = True
         self.calls.append(("land", None))
 
+    def stop(self):  # cut the motors immediately (emergency), NOT a gentle land
+        self.motors_cut = True
+        self.calls.append(("stop", None))
+
+    def get_battery(self):
+        return self._battery
+
 
 class CrazyflieBackend:
     """Map the protocol onto a cflib MotionCommander (metres / degrees, native)."""
@@ -59,11 +69,29 @@ class CrazyflieBackend:
     def __init__(self, mc):
         self.mc = mc
 
+    def battery(self) -> float:
+        get = getattr(self.mc, "get_battery", None)
+        return float(get()) if callable(get) else 100.0
+
+    def _emergency(self):
+        """Immediate stop (matches the protocol's 'emergency' + the Tello's
+        emergency()): cut the motors now, don't do a controlled descent."""
+        cf = getattr(self.mc, "_cf", None)  # MotionCommander holds the Crazyflie
+        if cf is not None:  # pragma: no cover - real hardware path
+            cf.commander.send_stop_setpoint()
+        elif hasattr(self.mc, "stop"):
+            self.mc.stop()
+        else:  # pragma: no cover - last resort if no stop primitive
+            self.mc.land()
+
     def apply_command(self, cmd):
         action = normalize_action(cmd.get("action", ""))
         dist = float(cmd.get("distance", DEFAULT_DIST))
         deg = float(cmd.get("degrees", DEFAULT_DEG))
         mc = self.mc
+        if action == "emergency_stop":
+            self._emergency()
+            return action
         moves = {
             "forward": lambda: mc.forward(dist),
             "back": lambda: mc.back(dist),
@@ -74,7 +102,6 @@ class CrazyflieBackend:
             "turn_left": lambda: mc.turn_left(deg),
             "turn_right": lambda: mc.turn_right(deg),
             "land": mc.land,
-            "emergency_stop": mc.land,  # safest immediate action on a Crazyflie
             "takeoff": lambda: None,  # MotionCommander takes off on context-enter
             "stop": lambda: None,
             "hover": lambda: None,
@@ -84,6 +111,16 @@ class CrazyflieBackend:
             return None
         fn()
         return action
+
+
+def handle(backend, cmd) -> bool:
+    """Apply one command, gated by the battery on take-off (mirrors the Tello
+    server). Returns False if refused."""
+    action = normalize_action(cmd.get("action", ""))
+    if action == "takeoff" and not safety.battery_gate(backend.battery()):
+        return False
+    backend.apply_command(cmd)
+    return True
 
 
 def serve(uri: str):  # pragma: no cover - needs a real Crazyflie + radio
@@ -101,7 +138,7 @@ def serve(uri: str):  # pragma: no cover - needs a real Crazyflie + radio
 
 
 def selftest() -> None:
-    mc = FakeMotionCommander()
+    mc = FakeMotionCommander(battery=90)
     backend = CrazyflieBackend(mc)
     stream = [
         {"action": "takeoff"},
@@ -110,9 +147,12 @@ def selftest() -> None:
         {"action": "up", "distance": 0.3},
         {"action": "land"},
     ]
-    for c in stream:
-        backend.apply_command(c)
+    served = sum(1 for c in stream if handle(backend, c))
     calls = [name for name, _ in mc.calls]
+
+    # emergency_stop cuts the motors — it is NOT a gentle land
+    mce = FakeMotionCommander()
+    CrazyflieBackend(mce).apply_command({"action": "emergency_stop"})
 
     # the controller-always-lands rule: even an exception path ends in land
     mc2 = FakeMotionCommander()
@@ -122,13 +162,21 @@ def selftest() -> None:
     except RuntimeError:
         CrazyflieBackend(mc2).apply_command({"action": "land"})
 
+    # battery gate: a low battery refuses take-off
+    low = CrazyflieBackend(FakeMotionCommander(battery=10))
+    refused = not handle(low, {"action": "takeoff"})
+
     print(
         f"CF-SERVER OK: mapped protocol cmds -> motion_commander calls "
-        f"[{', '.join(calls)}], battery-gate + commander-always-lands enforced"
+        f"[{', '.join(calls)}], battery-gate + emergency-cuts-motors + "
+        f"commander-always-lands enforced"
     )
+    assert served == len(stream), "a command was dropped"
     assert "forward" in calls and "turn_right" in calls, calls
     assert mc.landed, "stream did not land"
+    assert mce.motors_cut and not mce.landed, "emergency_stop must cut motors, not land"
     assert mc2.landed, "exception path did not land"
+    assert refused, "low battery should refuse take-off"
 
 
 def main() -> None:

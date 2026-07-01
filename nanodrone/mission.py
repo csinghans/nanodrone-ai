@@ -110,7 +110,10 @@ class Takeoff(State):
         m.target = clip_to_fence([m.pos[0], m.pos[1], self.height])
 
     def is_done(self, m: "Mission") -> bool:
-        return abs(m.pos[2] - self.height) < TAKEOFF_TOL
+        # Compare against the *commanded* height (m.target[2], already clipped to
+        # the ceiling), not the raw request — else a height above the geofence
+        # ceiling could never be reached and the phase would hang.
+        return abs(m.pos[2] - m.target[2]) < TAKEOFF_TOL
 
 
 class Hover(State):

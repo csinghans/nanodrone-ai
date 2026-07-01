@@ -222,7 +222,7 @@ def selftest() -> None:
     r, m = fly(gui=False)
     errs = m.scene["track_errs"]
     mean_err = float(np.mean(errs)) if errs else 99.0
-    acquired = m.scene.get("acquire_t")
+    acquired = m.scene.get("acquire_t", -1.0)  # -1 = never acquired (search timeout)
     print(
         f"CAPSTONE-MINI OK: Search->Follow in {acquired:.1f}s "
         f"(confirm gate p={m.scene.get('acquire_p', 0):.2f}), "

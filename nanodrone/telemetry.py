@@ -34,7 +34,9 @@ class FlightLogger:
         )
 
     def save(self, path: str) -> int:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
+        dirname = os.path.dirname(path)
+        if dirname:  # os.makedirs("") raises; a bare filename saves in cwd
+            os.makedirs(dirname, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
             for r in self.rows:
                 f.write(json.dumps(r) + "\n")

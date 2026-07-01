@@ -30,13 +30,18 @@ sys.path.insert(
 )
 from tello_backend import FakeTello, TelloBackend  # noqa: E402
 
+# On a low battery, refuse take-off AND further moves; still allow land / stop /
+# hover / emergency so the drone can always come down safely.
+_GATED = {"takeoff", "forward", "back", "left", "right", "up", "down",
+          "turn_left", "turn_right"}
+
 
 def handle(backend, cmd) -> bool:
     """Apply one command, gated by the battery. Returns False if refused."""
     action = normalize_action(cmd.get("action", ""))
     low_batt = not safety.battery_gate(backend.tello.get_battery())
-    if action == "takeoff" and low_batt:
-        return False  # don't take off on a low battery
+    if action in _GATED and low_batt:
+        return False  # don't take off or fly further on a low battery
     backend.apply_command(cmd)
     return True
 
