@@ -44,7 +44,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 sys.path.insert(0, os.path.abspath(os.path.join(HERE, "..", "03_autonomy_ai")))
 
-from gen_wm_dataset import DANGER_R, HORIZON_K, gen  # noqa: E402
+from gen_wm_dataset import DANGER_R, HORIZON_K, as_pairs, gen  # noqa: E402
 from gen_wm_dataset import OUT as DATA  # noqa: E402
 from train_cnn import TinyDronet  # noqa: E402  (reuse Lesson 3's conv stack)
 
@@ -119,12 +119,13 @@ def roc_auc(scores: np.ndarray, labels: np.ndarray) -> float:
 
 def _load_or_make(selftest: bool) -> dict:
     if selftest:
-        return gen(8, 60)  # self-contained tiny set (no prior npz needed)
+        # self-contained tiny set (no prior npz needed), sliced at one horizon
+        return as_pairs(gen(10, 100), HORIZON_K)
     if os.path.exists(DATA):
         blob = np.load(DATA)
-        return {k: blob[k] for k in ("X", "Xk", "A", "c")}
+        return as_pairs({k: blob[k] for k in blob.files}, HORIZON_K)
     print(f"[INFO] no dataset at {DATA}; generating a default one ...")
-    return gen(20, 80)
+    return as_pairs(gen(32, 120), HORIZON_K)
 
 
 def main() -> None:
