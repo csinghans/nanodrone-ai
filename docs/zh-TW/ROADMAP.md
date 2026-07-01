@@ -19,7 +19,7 @@
 後續課程整併成五條軌道：
 
 - **Track A — 編排主線（Orchestration）**：L11 狀態機骨幹 → L12 語音驅動轉移 → L13 多模態 mini-capstone → L16 畢業專題。這是所有走主線新手的必經路徑。
-- **Track B — 板載落地與感知深化（On-device / perception depth）**：L14a 建圖巡邏 → L14b 板載收斂；再往深處走 L17 單目深度 → L18 光流／VO → L19 多障礙 RL（餵感知）→ L20 域隨機化 → L21 蒸餾+壓縮 → L22 多能力蒸餾成單一板載策略。這條把「模擬器目前閒置的能力」逐步榨成自訓 int8 小模型，是招牌主題的深化主幹，也是把課程**貼近真機**而非帶離真機的關鍵。L29 再為本軌收尾，把這條線從*反應式*推進到*預判式*：一個 nano V-JEPA 世界模型，預測下一個隱空間（而非像素）做預判式避障，仍蒸餾在 512KB 內。
+- **Track B — 板載落地與感知深化（On-device / perception depth）**：L14a 建圖巡邏 → L14b 板載收斂；再往深處走 L17 單目深度 → L18 光流／VO → L19 多障礙 RL（餵感知）→ L20 域隨機化 → L21 蒸餾+壓縮 → L22 多能力蒸餾成單一板載策略。這條把「模擬器目前閒置的能力」逐步榨成自訓 int8 小模型，是招牌主題的深化主幹，也是把課程**貼近真機**而非帶離真機的關鍵。L29 再為本軌收尾，把這條線從*反應式*推進到*預判式*——且已閉環：nano V-JEPA 世界模型預測四個 horizon 的下一個隱空間（而非像素），由 12Hz 純視覺 latent MPC 飛行，100 條航道上平均比反應式基線早 ~725ms 觸發，板載預算 137KB。
 - **Track C — DroneVoice Apple App（並行選修，需 Apple 硬體）**：L27 協定抽取（前置技術債）→ L28 解析評測擂台（反例對照組的量化地基）→ Phase 2 語音入口 → Phase 3 on-device LLM 解析（反例對照組）→ Phase 4 SwiftUI + 雙向遙測 + app failsafe → Phase 5 sim→真機（5a Tello 先、5b Crazyflie 收束）。無 iPhone 者皆有 100% 等價的 Python 驗收。
 - **Track D — 進階 going-further（純文件，不成課）**：swarm、追蹤魯棒性（卡爾曼）、segmentation 標資料等指路文件，給「想再往前」的人指路，不擋畢業。（感測器噪音／domain randomization 已升格為正式課 L20，從本軌移除。）
 - **Track E — 真機落地基礎設施（sim-to-real bring-up）**：L23 飛行黑盒子（遙測+回放）→ L24 Tello 平價真機踏腳石 → L25 sim-to-real 落差量測 → L26 實地測試 SOP + 台灣法規。這條把「會飛」變成「合法、安全、可回看、可上真機驗證地飛」，是主線／Track B 訓出的模型真正落地前的最後一哩。
@@ -50,7 +50,7 @@
 11. **L21 蒸餾+壓縮**（進階）— 依賴 L4、L17+L20、L3。需要前面養出的較大模型當 teacher 才有「壓縮」意義。
 12. **L22 多能力蒸餾成單一策略**（進階，板載深化線 capstone）— 依賴 L8、L19、L21、L4。必須等避障（L19）與跟隨（L8）兩個 teacher 都在。
 
-> Track B 排序原則：先解鎖新感知模態（深度、光流）→ 餵進更難決策（多障礙 RL）→ 做 sim-to-real 縮差（域隨機化）→ 上板瘦身（蒸餾／壓縮）→ 多能力合一（蒸餾 capstone）→ **預判未來（L29 nano 世界模型：隱空間預測做預判式避障、蒸餾上機）**——為 Track B 收尾的預測前沿。
+> Track B 排序原則：先解鎖新感知模態（深度、光流）→ 餵進更難決策（多障礙 RL）→ 做 sim-to-real 縮差（域隨機化）→ 上板瘦身（蒸餾／壓縮）→ 多能力合一（蒸餾 capstone）→ **預判未來（L29 nano 世界模型：隱空間預測、純視覺 latent MPC 閉環飛行、蒸餾上機）**——為 Track B 收尾的預測前沿。
 
 ### Track E 真機落地分支（先 $0 sim，後標硬體）
 
@@ -681,7 +681,7 @@ Takeoff
 - Track C 整體維護成本最高——依賴 Apple 平台版本、CI 無法真正驗 on-device LLM 行為（只能驗 JSON schema）。**因此標為並行選修、與主線完全解耦**：JSON 協定是穩定 contract，Track A/B 不受 Apple API 變動影響。L27 協定抽取 + L28 評測擂台把風險再壓低一層。
 - **L11 `nanodrone/mission.py` 與 L27 `nanodrone/protocol.py` 一旦成為地基，任何 API 變動都可能悄悄弄壞下游**（mission 影響 L12–L16/L23；protocol 影響 L24/Phase 2–5）。**必須在 `.github` 建一個跨課整合 CI**（不只各課自己的 `--selftest`），覆蓋 `mission`/`protocol`/`safety`/`telemetry` 四個共用模組，在 API 變動時即時抓出回歸。
 - Track B 新課全部 sim 自產資料、`--selftest` 收斂，維護成本低；唯 L19 RL 與 L21/L22 蒸餾訓練時間較長，CI 用少步數冒煙測試（不在 CI 跑完整訓練）。
-- **L29（世界模型）** 是唯一做自監督隱空間預測的課，失效模式是*表徵塌縮*；靠 EMA target + VICReg 式變異數項防守，且 `--selftest` 以「贏過 no-op 基線」把關，塌縮的 encoder 會被擋下。比照 L3/L8/L13，其 trainer 載 torch，於本機驗證；無 torch 的冒煙 job 跑它的資料生成（`gen_wm_dataset`）與無 torch 的 `proactive_avoid`。這是*原理* demo，非生產級 V-JEPA。
+- **L29（世界模型）** 是唯一做自監督隱空間預測的課，失效模式是*表徵塌縮*；靠 EMA target + VICReg 式變異數項防守，且 `--selftest` 以「贏過 no-op 基線」**加上** veer-ranking 檢查（能否排出哪一側閃避真的較安全——planner 要問的問題）把關，塌縮或左右不分的 encoder 都會被擋下。比照 L3/L8/L13，其 trainer 載 torch，於本機驗證；無 torch 的冒煙 job 跑它的資料生成（`gen_wm_dataset`）與無 torch 的 `proactive_avoid`。這是*原理* demo，非生產級 V-JEPA。
 
 **最關鍵的策略取捨**：把課程從「更聰明的桌面模擬編排」拉回「板載／離線／真機自主」招牌，靠這幾條主線完成：(1) **L14b** 把編排能力縫回 GAP8/int8/<512KB；(2) **L13** 強制再訓一個確認分類器，讓「訓你自己的模型」主題在 capstone 前再現；(3) **L11 內建 Failsafe**、**L16 把板載考量與 failsafe 列入 rubric 硬門檻**，並在 docs 顯式交代主題轉折弧與 Phase 3 反例對照；(4) **Track B 的 L17→L18→L20→L21→L22** 把「模擬器閒置能力 → 自訓 dense／光流小模型 → 抗 sim-to-real → 壓進 512KB → 多能力合一上板」走完整條，讓「訓你自己的小模型」主題從「再現一次」升級為「貫穿到底」；(5) **新增 Track E（L23–L26）** 把「sim-first 基礎設施 → 平價真機踏腳石 → 量測落差 → 合法安全飛」做實，正面回應「誠實對待 sim-to-real」原則。**砍掉的 swarm 維持降級**，不復用其編號、不回頭拆地基。
 
