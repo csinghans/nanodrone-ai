@@ -158,9 +158,10 @@ about danger) learns the policy from the world model's own outputs, with the
 last second of them stacked as memory — so a pillar that slides out of the 60°
 FOV stays in the observation. Same encoder, same heads, same harnesses; only
 the decision-maker is learned. Two memory flavours ship (`--recurrent` swaps
-the stack for sb3-contrib's LSTM — the lesson's one optional dependency), and
-`--randomize` trains inside step 5's storm; every trained variant joins the
-scoreboards automatically.
+the stack for sb3-contrib's LSTM — the lesson's one optional dependency),
+`--randomize` trains inside step 5's storm, and `--edge-bias` re-weights the
+per-episode training speeds toward the fast edge of the envelope; every
+trained variant joins the scoreboards automatically.
 
 Each script self-generates what it needs and runs on its own with `--selftest`.
 
@@ -207,26 +208,32 @@ ONBOARD-BUDGET OK: weights=81.3 KB + peak_activation=28.0 KB + workspace(dbl-buf
 Step 4c is the mechanism, measured — 30 single-pillar courses per cruise
 speed, same seeds at every speed, every available policy (crash rates):
 
-| cruise | reactive | wm (hand MPC) | **learned (stacked)** | learned (LSTM) |
-|---|---|---|---|---|
-| 0.8 m/s | 0 % | 10 % | **0 %** | 0 % |
-| 1.0 m/s | 0 % | 0 % | **0 %** | 0 % |
-| 1.2 m/s | 3 % | 0 % | **0 %** | 0 % |
-| 1.4 m/s | **40 %** | 0 % | **0 %** | 3 % |
-| 1.6 m/s | **60 %** | 10 % | **0 %** | **40 %** |
+| cruise | reactive | wm (hand MPC) | **learned (stacked)** | learned (LSTM) | LSTM, edge-biased |
+|---|---|---|---|---|---|
+| 0.8 m/s | 0 % | 10 % | **0 %** | 0 % | 0 % |
+| 1.0 m/s | 0 % | 0 % | **0 %** | 0 % | 0 % |
+| 1.2 m/s | 3 % | 0 % | **0 %** | 0 % | 0 % |
+| 1.4 m/s | **40 %** | 0 % | **0 %** | 3 % | 0 % |
+| 1.6 m/s | **60 %** | 10 % | **0 %** | **40 %** | 3 % |
 
 ```
-SPEED-SWEEP OK: 30 single-pillar courses/speed — crash (reactive/wm/learned/learned-rnn) at 0.8 m/s = 0%/10%/0%/0%; at 1.6 m/s = 60%/10%/0%/40% — reaction pays a distance, anticipation pays time
+SPEED-SWEEP OK: 30 single-pillar courses/speed — crash (reactive/wm/learned/learned-rnn/learned-rnn-edge) at 0.8 m/s = 0%/10%/0%/0%/0%; at 1.6 m/s = 60%/10%/0%/40%/3% — reaction pays a distance, anticipation pays time
 ```
 
 The learned stacked-memory policy flies the *entire* speed band without a
 single crash — 150 courses, zero. The LSTM variant is the honest control
-experiment, twice over: at the stack's own 300k budget it never converged
-(3–37 % everywhere), and with a *fair* budget — 3× the steps, a right-sized
-64-wide LSTM, a 256-step backprop window — it converges beautifully up to
-1.4 m/s (0–3 %) and still collapses at the speed extreme (40 % at 1.6 m/s).
-Recurrence earned its keep in the common regime and lost it at the envelope's
-edge; the simple stack never lost it anywhere.
+experiment, three times over. At the stack's own 300k budget it never
+converged (3–37 % everywhere). With a *fair* budget — 3× the steps, a
+right-sized 64-wide LSTM, a 256-step backprop window — it converged up to
+1.4 m/s (0–3 %) and still collapsed at the speed extreme (40 % at 1.6 m/s,
+where episodes are shortest and uniform speed sampling starves the edge
+twice over). And with `--edge-bias` — half the training episodes drawn from
+the fast edge, every other knob identical — the extreme closes: **40 % → 3 %**
+on the sweep, 45 % → 7 % on the fast rerun. Closed, but not for free: the
+re-weighting took its probability mass from the slow cluttered regime, and
+the cluttered tail reopened, 2 % → 10 %. You get what you sample — the diet
+patches the band you point it at, and the hole moves to where the mass came
+from. The simple stack needed none of this; it has yet to lose anywhere.
 
 Read the two scoreboards together, like a robot person would. **Step 4c is the
 mechanism**: the reactive trigger fires at a fixed *distance*, so raising the
@@ -272,12 +279,12 @@ what `--robust` buys back.
 
 Step 6 does exactly that — Lesson 19's PPO over the world model's outputs,
 with one second of stacked memory, and no hand-tuned danger weights anywhere
-(measured after 300k steps, ~16 minutes of training; the LSTM and
-storm-trained variants join the same table):
+(measured after 300k steps, ~16 minutes of training; the LSTM, edge-biased
+and storm-trained variants join the same table):
 
 ```
-LEARNED-POLICY OK: 60 cluttered courses @ 0.8 m/s — crash reactive 2% / wm-mpc 17% / learned 0% / learned-rnn 2% / learned-rand 7% / learned-rnn-rand 37% (clearance 0.41 / 0.40 / 0.32 / 0.28 / 0.32 / 0.28 m)
-  single-pillar @ 1.6 m/s — crash reactive 70% / wm-mpc 8% / learned 0% / learned-rnn 45% / learned-rand 3% / learned-rnn-rand 45% — the cost function is learned, the world model is the same
+LEARNED-POLICY OK: 60 cluttered courses @ 0.8 m/s — crash reactive 2% / wm-mpc 17% / learned 0% / learned-rnn 2% / learned-rnn-edge 10% / learned-rand 7% / learned-rnn-rand 37% (clearance 0.41 / 0.40 / 0.32 / 0.28 / 0.29 / 0.32 / 0.28 m)
+  single-pillar @ 1.6 m/s — crash reactive 70% / wm-mpc 8% / learned 0% / learned-rnn 45% / learned-rnn-edge 7% / learned-rand 3% / learned-rnn-rand 45% — the cost function is learned, the world model is the same
 ```
 
 The learned stacked-memory policy erases the hand planner's cluttered-course
@@ -289,13 +296,15 @@ did all of it. That is the lesson's closing argument.
 
 ## Going further
 
-- **Close the LSTM's speed-extreme gap.** The fair-budget experiment was run
-  (900k steps, 64-wide LSTM, 256-step BPTT): the recurrent policy now matches
-  the stack up to 1.4 m/s and on cluttered courses (2 %), but collapses at
-  1.6 m/s (40–45 %) where episodes are shortest and dynamics fastest. A speed
-  curriculum, more envelope-edge episodes, or a model-side GRU over `z_t` are
-  the follow-ups. The finding, twice measured: **the simple stack has yet to
-  lose anywhere** — elegance still hasn't paid its way here.
+- **One memory that holds the whole envelope.** The speed-extreme gap is
+  closed: `--edge-bias` (half the episodes drawn from the fast edge, same
+  900k budget) takes the LSTM from 40 % to 3 % at 1.6 m/s — and reopens the
+  cluttered tail, 2 % → 10 %, exactly where the sampling mass came from.
+  Three runs, one lesson: every re-weighting patches the band you point it
+  at and moves the hole. The open follow-ups: a curriculum that ends on a
+  mixed diet, or a model-side GRU over `z_t`. The finding, three times
+  measured: **the simple stack has yet to lose anywhere** — elegance still
+  hasn't paid its way here.
 - **Longer memory, harder worlds.** The stacked second of memory suffices for
   this corridor; denser clutter and moving obstacles will need more — that is
   where the recurrent line (or yaw-aligned flight) earns its keep.
@@ -432,8 +441,8 @@ Step 6 對 planner 的裁決採取行動：不再調 cost 函數，改用 PPO（
 前進獎勵、墜機懲罰，危險項沒有任何手工塑形）從世界模型自己的輸出學出策略，並把最近一秒的
 輸出堆疊成記憶——滑出 60° FOV 的柱子會在觀測裡多留一秒。同一顆 encoder、同一組 heads、
 同一套測試工具；只有「做決定的東西」是學出來的。記憶有兩種口味（`--recurrent` 把堆疊換成
-sb3-contrib 的 LSTM——全課唯一的可選新依賴），`--randomize` 則直接在 step 5 的風暴裡訓練；
-每個訓練出的變體都會自動加入記分板。
+sb3-contrib 的 LSTM——全課唯一的可選新依賴），`--randomize` 直接在 step 5 的風暴裡訓練，
+`--edge-bias` 則把每回合的訓練速度往包絡的高速端加權；每個訓練出的變體都會自動加入記分板。
 
 每支腳本都自產所需資料，可用 `--selftest` 獨立執行。
 
@@ -477,23 +486,27 @@ ONBOARD-BUDGET OK: weights=81.3 KB + peak_activation=28.0 KB + workspace(dbl-buf
 Step 4c 是機制本身的量測——每個巡航速度 30 條單柱航道、跨速度同一組 seeds、
 所有可用策略同場（墜機率）：
 
-| 巡航 | reactive | wm（手工 MPC） | **learned（堆疊記憶）** | learned（LSTM） |
-|---|---|---|---|---|
-| 0.8 m/s | 0 % | 10 % | **0 %** | 0 % |
-| 1.0 m/s | 0 % | 0 % | **0 %** | 0 % |
-| 1.2 m/s | 3 % | 0 % | **0 %** | 0 % |
-| 1.4 m/s | **40 %** | 0 % | **0 %** | 3 % |
-| 1.6 m/s | **60 %** | 10 % | **0 %** | **40 %** |
+| 巡航 | reactive | wm（手工 MPC） | **learned（堆疊記憶）** | learned（LSTM） | LSTM＋邊緣過採樣 |
+|---|---|---|---|---|---|
+| 0.8 m/s | 0 % | 10 % | **0 %** | 0 % | 0 % |
+| 1.0 m/s | 0 % | 0 % | **0 %** | 0 % | 0 % |
+| 1.2 m/s | 3 % | 0 % | **0 %** | 0 % | 0 % |
+| 1.4 m/s | **40 %** | 0 % | **0 %** | 3 % | 0 % |
+| 1.6 m/s | **60 %** | 10 % | **0 %** | **40 %** | 3 % |
 
 ```
-SPEED-SWEEP OK: 30 single-pillar courses/speed — crash (reactive/wm/learned/learned-rnn) at 0.8 m/s = 0%/10%/0%/0%; at 1.6 m/s = 60%/10%/0%/40% — reaction pays a distance, anticipation pays time
+SPEED-SWEEP OK: 30 single-pillar courses/speed — crash (reactive/wm/learned/learned-rnn/learned-rnn-edge) at 0.8 m/s = 0%/10%/0%/0%/0%; at 1.6 m/s = 60%/10%/0%/40%/3% — reaction pays a distance, anticipation pays time
 ```
 
 學出來的堆疊記憶策略把*整條*速度帶飛完、一次都沒撞——150 條航道，零墜機。LSTM 版
-是誠實的對照組，而且量了兩次：在堆疊版的 300k 預算下它從未收斂（全帶 3–37%）；給了
+是誠實的對照組，而且量了三次。在堆疊版的 300k 預算下它從未收斂（全帶 3–37%）。給了
 *公平*預算——三倍步數、合身的 64 寬 LSTM、256 步的 BPTT 窗口——它在 1.4 m/s 以下
-收斂得漂亮（0–3%），卻仍在速度極端崩潰（1.6 m/s 時 40%）。遞歸在常用域掙到了飯，
-在包絡邊緣丟了；簡單的堆疊則從未在任何地方輸過。
+收斂（0–3%），卻仍在速度極端崩潰（1.6 m/s 時 40%——那裡回合最短，均勻取樣又對邊緣
+雙重稀薄）。再加上 `--edge-bias`——一半的訓練回合改抽自高速邊緣、其餘旋鈕一個都不動——
+極端關上了：掃描帶 **40% → 3%**、快速重跑 45% → 7%。關上了，但不是免費的：重加權的
+質量是從慢速雜訊域挪來的，雜訊尾巴於是重新打開，2% → 10%。你取樣什麼、就得到什麼——
+資料配方補上你指著的那條帶，洞就搬去質量被挪走的地方。簡單的堆疊這些全都不需要；
+它至今沒在任何地方輸過。
 
 把兩張記分板放在一起、用機器人工程師的方式讀。**Step 4c 是機制**：反應式在固定*距離*觸發，
 速度一拉高就把預算花光——墜機率 0% 飆到 60%；會預判的 MPC 在固定*時間*觸發，全程壓在
@@ -526,11 +539,11 @@ privileged 方向的基線，而且純靠視覺、從未在風暴中訓練過—
 而那正是 `--robust` 買回來的東西。
 
 Step 6 正是這麼做的——Lesson 19 的 PPO 讀世界模型的輸出、帶一秒的堆疊記憶、任何地方都沒有
-手調的危險權重（300k 步、約 16 分鐘訓練後實測；LSTM 與 storm 訓練變體同表較勁）：
+手調的危險權重（300k 步、約 16 分鐘訓練後實測；LSTM、邊緣過採樣與 storm 訓練變體同表較勁）：
 
 ```
-LEARNED-POLICY OK: 60 cluttered courses @ 0.8 m/s — crash reactive 2% / wm-mpc 17% / learned 0% / learned-rnn 2% / learned-rand 7% / learned-rnn-rand 37% (clearance 0.41 / 0.40 / 0.32 / 0.28 / 0.32 / 0.28 m)
-  single-pillar @ 1.6 m/s — crash reactive 70% / wm-mpc 8% / learned 0% / learned-rnn 45% / learned-rand 3% / learned-rnn-rand 45% — the cost function is learned, the world model is the same
+LEARNED-POLICY OK: 60 cluttered courses @ 0.8 m/s — crash reactive 2% / wm-mpc 17% / learned 0% / learned-rnn 2% / learned-rnn-edge 10% / learned-rand 7% / learned-rnn-rand 37% (clearance 0.41 / 0.40 / 0.32 / 0.28 / 0.29 / 0.32 / 0.28 m)
+  single-pillar @ 1.6 m/s — crash reactive 70% / wm-mpc 8% / learned 0% / learned-rnn 45% / learned-rnn-edge 7% / learned-rand 3% / learned-rnn-rand 45% — the cost function is learned, the world model is the same
 ```
 
 學出來的堆疊記憶策略把手工 planner 的雜訊尾巴**整個抹掉**（**17% → 0%**，純視覺甚至贏過
@@ -539,10 +552,11 @@ LEARNED-POLICY OK: 60 cluttered courses @ 0.8 m/s — crash reactive 2% / wm-mpc
 
 ## 延伸
 
-- **關掉 LSTM 的速度極端缺口。**公平預算實驗已經做了（900k 步、64 寬 LSTM、256 步 BPTT）：
-  recurrent 策略在 1.4 m/s 以下與雜訊航道（2%）追平堆疊版，卻在 1.6 m/s 崩潰（40–45%）——
-  那裡回合最短、動態最快。速度課程學習、更多包絡邊緣的回合、或模型側 `z_t` 上的 GRU 是
-  後續。量了兩次的發現：**簡單的堆疊至今沒在任何地方輸過**——優雅還沒付清它的路費。
+- **一個撐得住整個包絡的記憶。**速度極端缺口已經關上：`--edge-bias`（一半回合抽自高速
+  邊緣、同樣的 900k 預算）把 LSTM 在 1.6 m/s 從 40% 壓到 3%——同時把雜訊尾巴重新打開
+  （2% → 10%），正是取樣質量被挪走的地方。三輪實驗、一個教訓：每次重加權都補上你指著
+  的那條帶、然後把洞搬家。留下的後續：一個收在混合配方上的課程學習，或模型側 `z_t` 上
+  的 GRU。量了三次的發現：**簡單的堆疊至今沒在任何地方輸過**——優雅還沒付清它的路費。
 - **更長的記憶、更難的世界。**這條走廊一秒的堆疊記憶就夠；更密的雜訊與會動的障礙物才是
   recurrent 路線（或 yaw 對齊飛行）真正掙飯吃的地方。
 - **把隱空間度量接地（研究級）。**用 **4D-GS 離線**產生幾何一致的 occupancy，加一個

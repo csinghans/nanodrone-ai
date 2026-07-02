@@ -29,7 +29,11 @@ Training randomizes cruise speed (0.6–1.6 m/s) and course layout every
 episode. `--randomize` goes further and trains inside step 5's storm: random
 pillar shapes/colours, 0–2 control steps of command latency, ±8 % actuation
 noise, and appearance jitter on every frame — so the policy learns on the
-degraded probabilities it will actually see. The learned policy then drops
+degraded probabilities it will actually see. `--edge-bias` re-weights the
+per-episode speed draw: half the episodes come from the fast edge of the
+envelope (1.2–1.6 m/s), because uniform sampling starves the edge twice over
+— the top band is a sliver of the range, and fast episodes end sooner, so
+their share of *decisions* is smaller still. The learned policy then drops
 into the *same* harnesses as every other policy in this lesson
 (`run_episode`, the 4b scoreboard, the 4c sweep), so comparisons are apples
 to apples.
@@ -37,11 +41,12 @@ to apples.
 Run:
   python lessons/29_world_model/learn_policy.py --timesteps 300000   # train (~16 min)
   python lessons/29_world_model/learn_policy.py --recurrent          # LSTM memory
+  python lessons/29_world_model/learn_policy.py --recurrent --edge-bias  # + fast edge
   python lessons/29_world_model/learn_policy.py --randomize          # in the storm
   python lessons/29_world_model/learn_policy.py --eval               # compare policies
   python lessons/29_world_model/learn_policy.py --selftest           # tiny, asserts
-Saves output/ppo_wm_policy[_recurrent][_rand].zip (git-ignored). Like Lesson
-19, the real training runs are manual jobs, not CI smoke tests.
+Saves output/ppo_wm_policy[_recurrent][_rand][_edge].zip (git-ignored). Like
+Lesson 19, the real training runs are manual jobs, not CI smoke tests.
 """
 
 import argparse
@@ -83,11 +88,22 @@ from wm_closed_loop import (  # noqa: E402
 
 HISTORY = 12  # stacked-memory depth (~1 s @ 12 Hz); --recurrent uses 1 + LSTM
 SPEED_RANGE = (0.75, 2.0)  # per-episode cruise factor, same envelope as the data
+# --edge-bias: uniform sampling starves the envelope edge twice over — the top
+# band is a sliver of the range AND fast episodes end sooner, so the edge's
+# share of *decisions* is smaller still. Bias half the episodes into the edge.
+EDGE_RANGE = (1.5, 2.0)  # the envelope edge: 1.2–1.6 m/s cruise
+EDGE_P = 0.5  # with --edge-bias, this fraction of episodes trains at the edge
 POLICY_ZIP = os.path.join(HERE, "output", "ppo_wm_policy.zip")
 
 
-def zip_path(recurrent: bool = False, randomize: bool = False) -> str:
-    suffix = ("_recurrent" if recurrent else "") + ("_rand" if randomize else "")
+def zip_path(
+    recurrent: bool = False, randomize: bool = False, edge: bool = False
+) -> str:
+    suffix = (
+        ("_recurrent" if recurrent else "")
+        + ("_rand" if randomize else "")
+        + ("_edge" if edge else "")
+    )
     return os.path.join(HERE, "output", f"ppo_wm_policy{suffix}.zip")
 
 
@@ -150,13 +166,20 @@ class WMPolicyEnv(gym.Env):
 
     metadata = {"render_modes": []}
 
-    def __init__(self, seed0: int = 0, history: int = HISTORY, randomize: bool = False):
+    def __init__(
+        self,
+        seed0: int = 0,
+        history: int = HISTORY,
+        randomize: bool = False,
+        edge_bias: bool = False,
+    ):
         super().__init__()
         self.env = make_env()
         self.enc, self.pred, self.cheads, self.nhead, self.meta = load_model()
         self.rng = np.random.default_rng(seed0)
         self.history = int(history)
         self.randomize = bool(randomize)
+        self.edge_bias = bool(edge_bias)
         probe = ObsBuilder(
             self.enc, self.pred, self.cheads, self.meta, 1.0, history=self.history
         )
@@ -189,7 +212,10 @@ class WMPolicyEnv(gym.Env):
             in_path=bool(self.rng.random() < 0.8),
             randomize=self.randomize,
         )
-        speed = float(self.rng.uniform(*SPEED_RANGE))
+        band = SPEED_RANGE
+        if self.edge_bias and self.rng.random() < EDGE_P:
+            band = EDGE_RANGE
+        speed = float(self.rng.uniform(*band))
         self.ob = ObsBuilder(
             self.enc, self.pred, self.cheads, self.meta, speed, history=self.history
         )
@@ -293,6 +319,7 @@ def train(
     seed0: int = 0,
     recurrent: bool = False,
     randomize: bool = False,
+    edge_bias: bool = False,
     out: str = None,
     n_steps: int = 256,
     lstm_size: int = 64,
@@ -301,7 +328,9 @@ def train(
 
     history = 1 if recurrent else HISTORY
     env = make_vec_env(
-        lambda: WMPolicyEnv(seed0=seed0, history=history, randomize=randomize),
+        lambda: WMPolicyEnv(
+            seed0=seed0, history=history, randomize=randomize, edge_bias=edge_bias
+        ),
         n_envs=1,
     )
     if recurrent:
@@ -324,7 +353,7 @@ def train(
 
         model = PPO("MlpPolicy", env, ent_coef=0.01, verbose=0)
     model.learn(total_timesteps=timesteps)
-    out = out or zip_path(recurrent, randomize)
+    out = out or zip_path(recurrent, randomize, edge_bias)
     os.makedirs(os.path.dirname(out), exist_ok=True)
     model.save(out)
     env.close()
@@ -343,13 +372,14 @@ def compare(n_seeds: int, seed0: int = 1000) -> dict:
         "reactive": lambda s: ReactivePolicy(enc, nhead),
         "wm-mpc": lambda s: WMPolicy(enc, pred, cheads, meta, speed=s),
     }
-    for name, rec, rnd in (
-        ("learned", False, False),
-        ("learned-rnn", True, False),
-        ("learned-rand", False, True),
-        ("learned-rnn-rand", True, True),
+    for name, rec, rnd, edge in (
+        ("learned", False, False, False),
+        ("learned-rnn", True, False, False),
+        ("learned-rnn-edge", True, False, True),
+        ("learned-rand", False, True, False),
+        ("learned-rnn-rand", True, True, False),
     ):
-        path = zip_path(rec, rnd)
+        path = zip_path(rec, rnd, edge)
         if os.path.exists(path):
             model = _load_policy(path)
             mk[name] = lambda s, m=model: LearnedPolicy(
@@ -379,6 +409,7 @@ def main() -> None:
     ap.add_argument("--recurrent", action="store_true")
     ap.add_argument("--n-steps", type=int, default=256)  # BPTT window (recurrent)
     ap.add_argument("--lstm-size", type=int, default=64)  # hidden width (recurrent)
+    ap.add_argument("--edge-bias", action="store_true")  # oversample the fast edge
     ap.add_argument("--randomize", action="store_true")
     ap.add_argument("--eval", action="store_true")
     ap.add_argument("--seeds", type=int, default=40)
@@ -401,6 +432,7 @@ def main() -> None:
         assert obs.shape == (env.obs_dim,) and env.obs_dim == per, "randomized env off"
         env.step(0)
         env.close()
+        assert zip_path(True, False, True) != zip_path(True, False), "edge zip clash"
         # smoke-train both flavours (wiring, not skill) — into _selftest zips,
         # so a real trained policy is never clobbered by a selftest
         st = os.path.join(HERE, "output", "ppo_wm_policy_selftest.zip")
@@ -417,18 +449,23 @@ def main() -> None:
         return
 
     if not args.eval:
-        tag = ("recurrent " if args.recurrent else "stacked ") + (
-            "+ randomized" if args.randomize else "clean"
+        tag = (
+            ("recurrent " if args.recurrent else "stacked ")
+            + ("+ randomized" if args.randomize else "clean")
+            + (" + edge-bias" if args.edge_bias else "")
         )
         print(f"[INFO] PPO over world-model outputs ({tag}), {args.timesteps} steps")
         train(
             args.timesteps,
             recurrent=args.recurrent,
             randomize=args.randomize,
+            edge_bias=args.edge_bias,
             n_steps=args.n_steps,
             lstm_size=args.lstm_size,
         )
-        print(f"[INFO] saved {zip_path(args.recurrent, args.randomize)}")
+        print(
+            f"[INFO] saved {zip_path(args.recurrent, args.randomize, args.edge_bias)}"
+        )
 
     res = compare(args.seeds)
     order = [k for k in res]
