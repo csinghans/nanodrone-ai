@@ -66,12 +66,13 @@ def _policies(enc, pred, cheads, nhead, meta):
     }
     from learn_policy import LearnedPolicy, _load_policy, zip_path
 
-    for name, rec, edge in (
-        ("learned", False, False),
-        ("learned-rnn", True, False),
-        ("learned-rnn-edge", True, True),
+    for name, rec, edge, curr in (
+        ("learned", False, False, False),
+        ("learned-rnn", True, False, False),
+        ("learned-rnn-edge", True, True, False),
+        ("learned-rnn-curr", True, False, True),
     ):
-        path = zip_path(recurrent=rec, edge=edge)
+        path = zip_path(recurrent=rec, edge=edge, curr=curr)
         if os.path.exists(path):
             model = _load_policy(path)
             mk[name] = lambda s, m=model: LearnedPolicy(
@@ -117,6 +118,7 @@ COLORS = {
     "learned": "tab:blue",
     "learned-rnn": "tab:purple",
     "learned-rnn-edge": "tab:red",
+    "learned-rnn-curr": "tab:brown",
 }
 LABELS = {
     "reactive": "reactive",
@@ -124,6 +126,7 @@ LABELS = {
     "learned": "learned (stacked memory)",
     "learned-rnn": "learned (LSTM memory)",
     "learned-rnn-edge": "learned (LSTM, edge-biased speeds)",
+    "learned-rnn-curr": "learned (LSTM, mixed-diet curriculum)",
 }
 
 

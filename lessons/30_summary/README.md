@@ -98,10 +98,11 @@ every later lesson trusted.
 
 - **Push the learned policy further (L29 step 6).** The stacked-memory PPO
   beats every other policy everywhere measured (0 % across the sweep and the
-  cluttered courses). The recurrent variant got its fair budget, then an
-  edge-biased data diet: the speed extreme closed (40 % → 3 %) but the
-  cluttered tail reopened (2 % → 10 %) — every re-weighting moves the hole.
-  The open follow-up is one memory that holds the whole envelope, or a
+  cluttered courses). The LSTM got four fair shots: uniform starves the speed
+  edge (40 %), an edge-biased diet closes it and moves the hole to the
+  cluttered tail (2 % → 10 %), and a three-diet curriculum lost both bands at
+  once (up to 73 %) — with an on-policy learner, order is not a free knob.
+  The data axis is measured out; the open follow-up is the model axis: a
   model-side GRU.
 - **Cross the sim-to-real bridge (Track E).** The Crazyflie + AI-deck path is
   prepared, deliberately unspent: domain randomization priced the modelled
@@ -195,9 +196,10 @@ COURSE OK: protocol 13 actions + schema | safety 4/4 failsafe verdicts + geofenc
 ## 延伸——接下來往哪走
 
 - **把學出來的策略推得更遠（L29 step 6）。**堆疊記憶的 PPO 在所有量測項目上勝過所有其他
-  策略（掃描帶與雜訊航道全 0%）。recurrent 變體先拿到公平預算、再拿到邊緣過採樣的資料
-  配方：速度極端關上了（40% → 3%），雜訊尾巴卻重新打開（2% → 10%）——每次重加權都只是
-  把洞搬家。留給你的後續，是一個撐得住整個包絡的記憶，或模型側的 GRU。
+  策略（掃描帶與雜訊航道全 0%）。LSTM 拿了四次公平機會：均勻取樣餓死速度邊緣（40%）、
+  邊緣過採樣關掉它卻把洞搬去雜訊尾巴（2% → 10%）、三段配方的課程學習則兩頭空（最高
+  73%）——on-policy 學習器手上，順序不是免費的旋鈕。資料軸已量盡；留給你的後續是模型軸：
+  模型側的 GRU。
 - **跨過 sim-to-real 的橋（Track E）。**Crazyflie + AI-deck 的路已鋪好、刻意還沒花掉：
   域隨機化為「模擬得出來的 gap」標了價；模擬不出來的那部分，拿 Lesson 26 的 SOP 上真機量。
 - **研究前沿。**用離線 4D-GS 把隱空間度量接地——一個等著你動手的 ICRA 級題目，而地基

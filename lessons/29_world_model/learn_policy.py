@@ -33,7 +33,11 @@ degraded probabilities it will actually see. `--edge-bias` re-weights the
 per-episode speed draw: half the episodes come from the fast edge of the
 envelope (1.2–1.6 m/s), because uniform sampling starves the edge twice over
 — the top band is a sliver of the range, and fast episodes end sooner, so
-their share of *decisions* is smaller still. The learned policy then drops
+their share of *decisions* is smaller still. `--curriculum` spends the same
+budget across three diets in sequence — natural first, then the fast edge,
+ending mixed — the schedule aimed at holding both bands with one memory,
+after `--edge-bias` measurably traded one band for the other. The learned
+policy then drops
 into the *same* harnesses as every other policy in this lesson
 (`run_episode`, the 4b scoreboard, the 4c sweep), so comparisons are apples
 to apples.
@@ -42,11 +46,12 @@ Run:
   python lessons/29_world_model/learn_policy.py --timesteps 300000   # train (~16 min)
   python lessons/29_world_model/learn_policy.py --recurrent          # LSTM memory
   python lessons/29_world_model/learn_policy.py --recurrent --edge-bias  # + fast edge
+  python lessons/29_world_model/learn_policy.py --curriculum         # 3-diet schedule
   python lessons/29_world_model/learn_policy.py --randomize          # in the storm
   python lessons/29_world_model/learn_policy.py --eval               # compare policies
   python lessons/29_world_model/learn_policy.py --selftest           # tiny, asserts
-Saves output/ppo_wm_policy[_recurrent][_rand][_edge].zip (git-ignored). Like
-Lesson 19, the real training runs are manual jobs, not CI smoke tests.
+Saves output/ppo_wm_policy[_recurrent][_rand][_edge][_curr].zip (git-ignored).
+Like Lesson 19, the real training runs are manual jobs, not CI smoke tests.
 """
 
 import argparse
@@ -93,16 +98,24 @@ SPEED_RANGE = (0.75, 2.0)  # per-episode cruise factor, same envelope as the dat
 # share of *decisions* is smaller still. Bias half the episodes into the edge.
 EDGE_RANGE = (1.5, 2.0)  # the envelope edge: 1.2–1.6 m/s cruise
 EDGE_P = 0.5  # with --edge-bias, this fraction of episodes trains at the edge
+# --curriculum: one budget, three diets — learn the base skill on the natural
+# distribution, drill the starved fast edge, then consolidate on a mixed diet
+# so neither band is forgotten. (edge_p, share of the budget) per phase.
+CURRICULUM = ((0.0, 1 / 3), (0.5, 1 / 3), (0.25, 1 / 3))
 POLICY_ZIP = os.path.join(HERE, "output", "ppo_wm_policy.zip")
 
 
 def zip_path(
-    recurrent: bool = False, randomize: bool = False, edge: bool = False
+    recurrent: bool = False,
+    randomize: bool = False,
+    edge: bool = False,
+    curr: bool = False,
 ) -> str:
     suffix = (
         ("_recurrent" if recurrent else "")
         + ("_rand" if randomize else "")
         + ("_edge" if edge else "")
+        + ("_curr" if curr else "")
     )
     return os.path.join(HERE, "output", f"ppo_wm_policy{suffix}.zip")
 
@@ -179,7 +192,7 @@ class WMPolicyEnv(gym.Env):
         self.rng = np.random.default_rng(seed0)
         self.history = int(history)
         self.randomize = bool(randomize)
-        self.edge_bias = bool(edge_bias)
+        self.edge_p = EDGE_P if edge_bias else 0.0
         probe = ObsBuilder(
             self.enc, self.pred, self.cheads, self.meta, 1.0, history=self.history
         )
@@ -189,6 +202,11 @@ class WMPolicyEnv(gym.Env):
         )
         self.action_space = gym.spaces.Discrete(probe.n_act)
         self.max_decisions = TMAX // DECIDE_EVERY
+
+    def set_edge_p(self, p: float) -> None:
+        """Curriculum hook: change the speed diet between training phases
+        (called through the VecEnv, so it reaches past the Monitor wrapper)."""
+        self.edge_p = float(p)
 
     def _frame(self) -> np.ndarray:
         frame = grab_frame(self.env)
@@ -213,7 +231,7 @@ class WMPolicyEnv(gym.Env):
             randomize=self.randomize,
         )
         band = SPEED_RANGE
-        if self.edge_bias and self.rng.random() < EDGE_P:
+        if self.edge_p > 0.0 and self.rng.random() < self.edge_p:
             band = EDGE_RANGE
         speed = float(self.rng.uniform(*band))
         self.ob = ObsBuilder(
@@ -360,6 +378,44 @@ def train(
     return model
 
 
+def train_curriculum(
+    timesteps: int,
+    seed0: int = 0,
+    out: str = None,
+    n_steps: int = 256,
+    lstm_size: int = 64,
+):
+    """The mixed-diet curriculum (recurrent only — the stack never needed it):
+    one model, one total budget, three diets in sequence per `CURRICULUM`.
+    Everything else matches `train(recurrent=True)`, so against the uniform
+    and edge-biased runs the *order of the data* is the only variable."""
+    from sb3_contrib import RecurrentPPO
+    from stable_baselines3.common.env_util import make_vec_env
+
+    env = make_vec_env(lambda: WMPolicyEnv(seed0=seed0, history=1), n_envs=1)
+    model = RecurrentPPO(
+        "MlpLstmPolicy",
+        env,
+        ent_coef=0.01,
+        n_steps=n_steps,
+        policy_kwargs=dict(lstm_hidden_size=lstm_size),
+        verbose=0,
+    )
+    done = 0
+    for i, (edge_p, share) in enumerate(CURRICULUM):
+        last = i == len(CURRICULUM) - 1
+        chunk = timesteps - done if last else int(round(timesteps * share))
+        env.env_method("set_edge_p", edge_p)
+        print(f"[INFO] curriculum phase {i + 1}: edge_p={edge_p}, {chunk} steps")
+        model.learn(total_timesteps=chunk, reset_num_timesteps=False)
+        done += chunk
+    out = out or zip_path(recurrent=True, curr=True)
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    model.save(out)
+    env.close()
+    return model
+
+
 def compare(n_seeds: int, seed0: int = 1000) -> dict:
     """Fly every available policy on identical cluttered courses (the 4b
     distribution, where the 16 % tail lives), plus the 4c speed endpoint on
@@ -372,14 +428,15 @@ def compare(n_seeds: int, seed0: int = 1000) -> dict:
         "reactive": lambda s: ReactivePolicy(enc, nhead),
         "wm-mpc": lambda s: WMPolicy(enc, pred, cheads, meta, speed=s),
     }
-    for name, rec, rnd, edge in (
-        ("learned", False, False, False),
-        ("learned-rnn", True, False, False),
-        ("learned-rnn-edge", True, False, True),
-        ("learned-rand", False, True, False),
-        ("learned-rnn-rand", True, True, False),
+    for name, rec, rnd, edge, curr in (
+        ("learned", False, False, False, False),
+        ("learned-rnn", True, False, False, False),
+        ("learned-rnn-edge", True, False, True, False),
+        ("learned-rnn-curr", True, False, False, True),
+        ("learned-rand", False, True, False, False),
+        ("learned-rnn-rand", True, True, False, False),
     ):
-        path = zip_path(rec, rnd, edge)
+        path = zip_path(rec, rnd, edge, curr)
         if os.path.exists(path):
             model = _load_policy(path)
             mk[name] = lambda s, m=model: LearnedPolicy(
@@ -410,6 +467,7 @@ def main() -> None:
     ap.add_argument("--n-steps", type=int, default=256)  # BPTT window (recurrent)
     ap.add_argument("--lstm-size", type=int, default=64)  # hidden width (recurrent)
     ap.add_argument("--edge-bias", action="store_true")  # oversample the fast edge
+    ap.add_argument("--curriculum", action="store_true")  # 3-diet schedule (LSTM)
     ap.add_argument("--randomize", action="store_true")
     ap.add_argument("--eval", action="store_true")
     ap.add_argument("--seeds", type=int, default=40)
@@ -432,40 +490,60 @@ def main() -> None:
         assert obs.shape == (env.obs_dim,) and env.obs_dim == per, "randomized env off"
         env.step(0)
         env.close()
-        assert zip_path(True, False, True) != zip_path(True, False), "edge zip clash"
+        paths = {
+            zip_path(),
+            zip_path(True),
+            zip_path(True, True),
+            zip_path(True, False, True),
+            zip_path(True, False, False, True),
+        }
+        assert len(paths) == 5, "zip suffixes clash"
         # smoke-train both flavours (wiring, not skill) — into _selftest zips,
         # so a real trained policy is never clobbered by a selftest
         st = os.path.join(HERE, "output", "ppo_wm_policy_selftest.zip")
         st_r = os.path.join(HERE, "output", "ppo_wm_policy_selftest_rnn.zip")
+        st_c = os.path.join(HERE, "output", "ppo_wm_policy_selftest_curr.zip")
         train(1500, seed0=7, out=st)
         train(1024, seed0=7, recurrent=True, out=st_r)
+        train_curriculum(768, seed0=7, out=st_c)  # one 256-step rollout per diet
         assert os.path.exists(st), "policy zip not saved"
         assert os.path.exists(st_r), "recurrent zip not saved"
+        assert os.path.exists(st_c), "curriculum zip not saved"
         print(
             f"LEARN-POLICY OK: obs={HISTORY}x{per} stacked (or 1x{per} + LSTM), "
-            f"5 actions, smoke-trained both flavours, randomized env steps, "
-            f"saved {st}"
+            f"5 actions, smoke-trained stacked/LSTM/curriculum, randomized env "
+            f"steps, saved {st}"
         )
         return
 
     if not args.eval:
-        tag = (
-            ("recurrent " if args.recurrent else "stacked ")
-            + ("+ randomized" if args.randomize else "clean")
-            + (" + edge-bias" if args.edge_bias else "")
-        )
-        print(f"[INFO] PPO over world-model outputs ({tag}), {args.timesteps} steps")
-        train(
-            args.timesteps,
-            recurrent=args.recurrent,
-            randomize=args.randomize,
-            edge_bias=args.edge_bias,
-            n_steps=args.n_steps,
-            lstm_size=args.lstm_size,
-        )
-        print(
-            f"[INFO] saved {zip_path(args.recurrent, args.randomize, args.edge_bias)}"
-        )
+        if args.curriculum:
+            print(f"[INFO] RecurrentPPO mixed-diet curriculum, {args.timesteps} steps")
+            train_curriculum(
+                args.timesteps, n_steps=args.n_steps, lstm_size=args.lstm_size
+            )
+            print(f"[INFO] saved {zip_path(recurrent=True, curr=True)}")
+        else:
+            tag = (
+                ("recurrent " if args.recurrent else "stacked ")
+                + ("+ randomized" if args.randomize else "clean")
+                + (" + edge-bias" if args.edge_bias else "")
+            )
+            print(
+                f"[INFO] PPO over world-model outputs ({tag}), {args.timesteps} steps"
+            )
+            train(
+                args.timesteps,
+                recurrent=args.recurrent,
+                randomize=args.randomize,
+                edge_bias=args.edge_bias,
+                n_steps=args.n_steps,
+                lstm_size=args.lstm_size,
+            )
+            print(
+                f"[INFO] saved "
+                f"{zip_path(args.recurrent, args.randomize, args.edge_bias)}"
+            )
 
     res = compare(args.seeds)
     order = [k for k in res]
