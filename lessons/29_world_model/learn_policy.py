@@ -294,6 +294,8 @@ def train(
     recurrent: bool = False,
     randomize: bool = False,
     out: str = None,
+    n_steps: int = 256,
+    lstm_size: int = 64,
 ):
     from stable_baselines3.common.env_util import make_vec_env
 
@@ -305,7 +307,18 @@ def train(
     if recurrent:
         from sb3_contrib import RecurrentPPO
 
-        model = RecurrentPPO("MlpLstmPolicy", env, ent_coef=0.01, verbose=0)
+        # A right-sized LSTM: the observation is 47 numbers, so the default
+        # 256-wide hidden state is mostly empty capacity that slows learning.
+        # n_steps=256 gives backprop-through-time a window longer than the
+        # stacked variant's 12 decisions.
+        model = RecurrentPPO(
+            "MlpLstmPolicy",
+            env,
+            ent_coef=0.01,
+            n_steps=n_steps,
+            policy_kwargs=dict(lstm_hidden_size=lstm_size),
+            verbose=0,
+        )
     else:
         from stable_baselines3 import PPO
 
@@ -364,6 +377,8 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--timesteps", type=int, default=300_000)
     ap.add_argument("--recurrent", action="store_true")
+    ap.add_argument("--n-steps", type=int, default=256)  # BPTT window (recurrent)
+    ap.add_argument("--lstm-size", type=int, default=64)  # hidden width (recurrent)
     ap.add_argument("--randomize", action="store_true")
     ap.add_argument("--eval", action="store_true")
     ap.add_argument("--seeds", type=int, default=40)
@@ -406,7 +421,13 @@ def main() -> None:
             "+ randomized" if args.randomize else "clean"
         )
         print(f"[INFO] PPO over world-model outputs ({tag}), {args.timesteps} steps")
-        train(args.timesteps, recurrent=args.recurrent, randomize=args.randomize)
+        train(
+            args.timesteps,
+            recurrent=args.recurrent,
+            randomize=args.randomize,
+            n_steps=args.n_steps,
+            lstm_size=args.lstm_size,
+        )
         print(f"[INFO] saved {zip_path(args.recurrent, args.randomize)}")
 
     res = compare(args.seeds)
