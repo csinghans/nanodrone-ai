@@ -1,6 +1,6 @@
 # nanodrone-ai
 
-> **NanoDrone-AI：從模擬出發的微型無人機板載 AI 自主飛行系統——最終在 27 克級無人機的預算內放進一個 tiny latent world model，在碰撞發生前 ~700ms 就預判並避開。**
+> **NanoDrone-AI：從模擬出發的微型無人機板載 AI 自主飛行系統——最終在 27 克級無人機的預算內放進一個 tiny latent world model，在碰撞發生之前就預判並避開。**
 >
 > 新手友善、按部就班：從 $0 純模擬起步，最終做到一台完全離線自飛的 Crazyflie。
 
@@ -84,7 +84,7 @@
 | **26** | 實地測試 SOP + 法規 | $0 | GO/NO-GO 飛行前 gate + 台灣民航局查核清單 |
 | **27** | 抽出飛行協定 | $0 | 一套 schema（`nanodrone.protocol`）到處重用 |
 | **28** | 解析器擂台（反例） | $0 | 何時通用模型 + 約束勝過自訓小模型 |
-| **29** | nano 世界模型（V-JEPA，板載） | $0 | 預測四個 horizon 的*下一個隱空間*；純視覺 latent MPC 比反應式早 ~725ms 避開（板載預算 137KB） |
+| **29** | nano 世界模型（V-JEPA，板載） | $0 | 預測四個 horizon 的*下一個隱空間*；高速下純視覺 latent MPC 墜機 10%、反應式 60%（板載預算 137KB） |
 | **DroneVoice** | Apple app → on-device LLM → 真機 | 軟體 $0 | 用 iPhone 開口飛（Phase 2–5；需 Apple 硬體） |
 
 每一課都採同樣的五段式結構：**為什麼 → 概念 → 動手做 → 驗收 → 延伸閱讀。**

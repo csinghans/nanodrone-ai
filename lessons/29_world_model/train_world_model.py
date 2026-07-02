@@ -76,6 +76,7 @@ from gen_wm_dataset import (  # noqa: E402
     FORWARD,
     FOV_HALF_DEG,
     HORIZONS,
+    RADII,
     counterfactual_labels,
     gen,
     window_valid,
@@ -135,15 +136,17 @@ class MultiPredictor(nn.Module):
 
 
 class CollisionHeads(nn.Module):
-    """Predicted-future latents -> one logit per horizon for 'dangerously close
-    within k steps'. A single linear layer per horizon."""
+    """Predicted-future latents -> logits per horizon x ring: 'within 0.7 m
+    within k steps' (the warning) and 'within 0.35 m within k steps' (the
+    about-to-hit). One linear layer per horizon, two outputs each — the
+    critical ring is what keeps the planner sighted inside the warn ring."""
 
-    def __init__(self, d=LATENT_D, horizons=HORIZONS):
+    def __init__(self, d=LATENT_D, horizons=HORIZONS, radii=RADII):
         super().__init__()
-        self.heads = nn.ModuleList(nn.Linear(d, 1) for _ in horizons)
+        self.heads = nn.ModuleList(nn.Linear(d, len(radii)) for _ in horizons)
 
     def forward(self, zh):  # zh: (B, H, D)
-        return torch.cat([h(zh[:, i]) for i, h in enumerate(self.heads)], dim=1)
+        return torch.stack([h(zh[:, i]) for i, h in enumerate(self.heads)], dim=1)
 
 
 class DangerNowHead(nn.Module):
@@ -180,7 +183,7 @@ def roc_auc(scores: np.ndarray, labels: np.ndarray) -> float:
 
 def _index_samples(data: dict) -> tuple[np.ndarray, np.ndarray]:
     """All (rollout, t) pairs whose command was held over the full H_MAX window,
-    with the per-horizon collision labels of the *flown* future."""
+    with per-horizon, per-ring collision labels of the *flown* future."""
     R, L = data["frames"].shape[:2]
     idx, c_h = [], []
     for r in range(R):
@@ -189,7 +192,12 @@ def _index_samples(data: dict) -> tuple[np.ndarray, np.ndarray]:
                 continue
             d = data["dists"][r]
             idx.append((r, t))
-            c_h.append([float(d[t : t + k + 1].min() < DANGER_R) for k in HORIZONS])
+            c_h.append(
+                [
+                    [float(d[t : t + k + 1].min() < rad) for rad in RADII]
+                    for k in HORIZONS
+                ]
+            )
     return np.array(idx, dtype=np.int64), np.array(c_h, dtype=np.float32)
 
 
@@ -231,13 +239,14 @@ def veer_ranking(data: dict, rolls, enc, pred, cheads, device) -> tuple:
     taus = (np.arange(HORIZONS[-1] + 1) / CTRL_HZ)[:, None]  # (k+1, 1)
     i_l, i_r = ACTION_NAMES.index("veer_left"), ACTION_NAMES.index("veer_right")
     cos_fov = np.cos(np.radians(FOV_HALF_DEG))
-    frames, gt_left_safer = [], []
+    frames, gt_left_safer, svs = [], [], []
     L = data["frames"].shape[1]
     for r in rolls:
         pil = data["pillars"][r]
         pil = pil[~np.isnan(pil[:, 0])]
         if not len(pil):
             continue
+        sv = float(data["speed"][r])  # judge each rollout at its own pace
         for t in range(L):
             if data["act_id"][r, t] != FORWARD:
                 continue
@@ -245,7 +254,8 @@ def veer_ranking(data: dict, rolls, enc, pred, cheads, device) -> tuple:
             d_v, q_v = [], []
             for i in (i_l, i_r):
                 dmat = np.linalg.norm(
-                    (p0 + taus * ACTION_VECS[i][:2])[:, None, :] - pil[None], axis=2
+                    (p0 + taus * sv * ACTION_VECS[i][:2])[:, None, :] - pil[None],
+                    axis=2,
                 )
                 d_v.append(float(dmat.min()))
                 q_v.append(pil[dmat.min(axis=0).argmin()])
@@ -259,16 +269,18 @@ def veer_ranking(data: dict, rolls, enc, pred, cheads, device) -> tuple:
                 continue  # threat outside the camera FOV: unanswerable from vision
             frames.append(data["frames"][r, t])
             gt_left_safer.append(d_l > d_r)
+            svs.append(sv)
     if not frames:
         return float("nan"), 0
     x = torch.tensor(np.array(frames), dtype=torch.float32, device=device)
     x = x.permute(0, 3, 1, 2) / 255.0
-    a_l = torch.tensor(ACTION_VECS[i_l] / A_NORM, device=device).expand(len(x), -1)
-    a_r = torch.tensor(ACTION_VECS[i_r] / A_NORM, device=device).expand(len(x), -1)
+    sv_col = np.array(svs, dtype=np.float32)[:, None]
+    a_l = torch.tensor(sv_col * ACTION_VECS[i_l] / A_NORM, device=device)
+    a_r = torch.tensor(sv_col * ACTION_VECS[i_r] / A_NORM, device=device)
     with torch.no_grad():
         z = enc(x)
-        p_l = torch.sigmoid(cheads(pred(z, a_l))[:, -1])
-        p_r = torch.sigmoid(cheads(pred(z, a_r))[:, -1])
+        p_l = torch.sigmoid(cheads(pred(z, a_l))[:, -1, 0])  # warn ring @ 667 ms
+        p_r = torch.sigmoid(cheads(pred(z, a_r))[:, -1, 0])
     gt = torch.tensor(np.array(gt_left_safer), device=device)
     correct = torch.where(gt, p_l < p_r, p_r < p_l)
     return float(correct.float().mean()), len(frames)
@@ -297,11 +309,11 @@ def train(data: dict, epochs: int = 80, batch: int = 64, seed: int = 0) -> tuple
     c_h_t = torch.tensor(c_h).to(device)
     base = torch.tensor(idx[:, 0] * L + idx[:, 1]).to(device)
     offs = torch.tensor([int(k) for k in HORIZONS]).to(device)
-    # the counterfactual oracle: labels for every (frame, candidate, horizon) —
-    # valid at every step, so it uses ALL train-rollout frames, switches included
-    n_a, n_h = len(ACTION_VECS), len(HORIZONS)
+    # the counterfactual oracle: labels for every (frame, candidate, horizon,
+    # ring) — valid at every step, so it uses ALL train-rollout frames
+    n_a, n_h, n_r = len(ACTION_VECS), len(HORIZONS), len(RADII)
     cf_np, vis_np = counterfactual_labels(data)
-    cf_np = cf_np.reshape(R * L, n_a, n_h).astype(np.float32)
+    cf_np = cf_np.reshape(R * L, n_a, n_h, n_r).astype(np.float32)
     vis_np = vis_np.reshape(R * L, n_a).astype(np.float32)
     cf = torch.tensor(cf_np).to(device)
     vis = torch.tensor(vis_np).to(device)
@@ -313,7 +325,9 @@ def train(data: dict, epochs: int = 80, batch: int = 64, seed: int = 0) -> tuple
     # frames where the *visible* candidate labels disagree carry the ranking
     # signal; most frames are far from any pillar and teach nothing about
     # choice, so half of every counterfactual batch oversamples the former
-    cfv = (cf_np * vis_np[:, :, None])[tr_frames]
+    cfv = (cf_np * vis_np[:, :, None, None])[tr_frames].reshape(
+        len(tr_frames), n_a, n_h * n_r
+    )
     disagree = (cfv.max(axis=1) != cfv.min(axis=1)).any(axis=1)
     c_hard = torch.tensor(tr_frames[disagree] if disagree.any() else tr_frames).to(
         device
@@ -366,10 +380,10 @@ def train(data: dict, epochs: int = 80, batch: int = 64, seed: int = 0) -> tuple
             )
             z_c = enc(frames_at(cb))
             z_cf = pred(z_c.repeat_interleave(n_a, dim=0), cands.repeat(len(z_c), 1))
-            w = vis[cb].reshape(-1, 1)  # unanswerable (frame, cand) pairs: no loss
-            cf_loss = (bce_none(cheads(z_cf), cf[cb].reshape(-1, n_h)) * w).sum() / (
-                w.sum() * n_h + 1e-6
-            )
+            w = vis[cb].reshape(-1, 1, 1)  # unanswerable (frame, cand): no loss
+            cf_loss = (
+                bce_none(cheads(z_cf), cf[cb].reshape(-1, n_h, n_r)) * w
+            ).sum() / (w.sum() * n_h * n_r + 1e-6)
             now_loss = bce(nhead(z_c), now_all[cb])
             (
                 pred_loss
@@ -392,8 +406,8 @@ def train(data: dict, epochs: int = 80, batch: int = 64, seed: int = 0) -> tuple
         noop_h = (
             ((z_t.unsqueeze(1) - z_tgt) ** 2).mean(dim=(0, 2)).cpu().numpy()
         )  # predictor does nothing
-        scores = torch.sigmoid(cheads(z_hat)).cpu().numpy()
-    auc_h = [roc_auc(scores[:, i], c_h[va][:, i]) for i in range(len(HORIZONS))]
+        scores = torch.sigmoid(cheads(z_hat)).cpu().numpy()[:, :, 0]  # warn ring
+    auc_h = [roc_auc(scores[:, i], c_h[va][:, i, 0]) for i in range(len(HORIZONS))]
     # danger-now needs no held future window, so score it on *every* val frame
     now_idx = torch.tensor([r * L + t for r in va_rolls for t in range(L)]).to(device)
     now_lbl = np.array(
@@ -431,6 +445,7 @@ def train(data: dict, epochs: int = 80, batch: int = 64, seed: int = 0) -> tuple
             "D": LATENT_D,
             "A": ACTION_D,
             "horizons": [int(k) for k in HORIZONS],
+            "radii": [float(rad) for rad in RADII],
             "danger_r": float(DANGER_R),
             "a_norm": [float(v) for v in A_NORM],
             "action_names": list(ACTION_NAMES),

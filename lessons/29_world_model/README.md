@@ -44,9 +44,16 @@ Four tiny networks, reusing the course's conv stack, all int8-able:
   trunk, one tiny residual head per horizon (`ẑ = z_t + Δ_k`, so "nothing
   changes" is the free baseline). "Proactive" is a claim about *time*: a
   controller that reacts ~700 ms early needs a model that predicts ~700 ms
-  ahead, not one fixed 167 ms hop.
-- **Collision heads**: `ẑ_k → P(too close within k steps)`, one per horizon —
-  the *anticipation* signal.
+  ahead, not one fixed 167 ms hop. And every training rollout scales the whole
+  command set by a cruise-speed factor (0.6–1.6 m/s), so the heads learn
+  danger *as a function of commanded speed* — that is what powers step 4c.
+- **Collision heads**: `ẑ_k → P(within 0.7 m within k steps)` *and*
+  `P(within 0.35 m within k steps)` — a **warn ring** and a **critical ring**
+  per horizon. Two rings, because one ring is a region test, not a gradient:
+  inside 0.7 m *every* action "warns" (passing a pillar crosses 0.7 m briefly
+  — a correct prediction), and only the critical ring still separates "grazes
+  past" from "about to hit". (Measured with one ring: the planner froze
+  mid-course, hovering forever at the boundary.)
 - **Danger-now head**: `z_t → P(too close right now)` — the *reactive* signal,
   kept on purpose: it is the honest baseline the anticipation must beat with
   the sensor held equal.
@@ -82,7 +89,17 @@ finally the bearing-aware pooling above (the root cause). The lesson: **a high
 AUC does not mean a model can rank actions — test the decision, not the
 detection.** That test ships here as the `veer-ranking` metric: on held-out
 frames where geometry says one veer is truly safer, does the model rank it
-safer? Chance is 0.5; this model measures 1.00 (n=34).
+safer? Chance is 0.5; this model measures 1.00.
+
+Closing the *planner* took the same discipline, one measured failure at a
+time: a flat max-over-horizons danger paralyses at the ring (→ urgency
+weights); one ring has no gradient inside itself (→ the critical ring); an
+absolute trigger threshold inherits the heads' course-dependent probability
+floor and false-triggers on every clear course (→ the *relative* margin
+trigger); slowing down is a fake evasion that creeps into the ring (→ veers
+only); long committed maneuvers fly blind (→ short commits + a
+corridor-centering prior from the drone's own odometry). The meta-lesson:
+**with learned heads, every planner assumption is a hypothesis — measure it.**
 
 **Why latent (V-JEPA), not explicit 4D geometry (4D-GS)?** Both are world models;
 they sit at opposite ends of the trade-off.
@@ -108,7 +125,8 @@ python lessons/29_world_model/gen_wm_dataset.py --rollouts 64    # 1. interventi
 python lessons/29_world_model/train_world_model.py --epochs 80   # 2. train the nano V-JEPA
 python lessons/29_world_model/proactive_avoid.py                 # 3. the timing schematic
 python lessons/29_world_model/wm_closed_loop.py                  # 4. closed loop from vision
-python lessons/29_world_model/eval_world_model_policy.py         # 4b. the 100-seed scoreboard
+python lessons/29_world_model/eval_world_model_policy.py         # 4b. the cluttered scoreboard
+python lessons/29_world_model/speed_sweep.py                     # 4c. crash rate vs speed
 ```
 
 Step 3 (`proactive_avoid.py`) isolates decision *timing* with privileged
@@ -116,11 +134,17 @@ geometry — a schematic. Step 4 removes the crutch: the danger signal in the
 control loop comes from the **camera alone** (encoder → predictor → collision
 heads), while pillar positions only stage the course and score the flight. The
 planner is a tiny **latent MPC** at 12 Hz: encode the frame *once*, imagine
-every candidate command through the small MLPs (the expensive encoder is
-shared, so on a GAP8 the whole deliberation is nearly free), pick the cheapest
-future under `6·danger + heading + 0.5·switch − 1.5·progress`. The reactive
-baseline gets the same encoder — and, deliberately, a *privileged* evasion
-direction. It can only lose on timing, so the comparison isolates anticipation.
+every candidate through the small MLPs (the expensive encoder is shared, so on
+a GAP8 the whole deliberation is nearly free), evade when going straight is
+predicted meaningfully more dangerous than the better veer — a *relative*
+trigger, because absolute thresholds inherit the heads' course-dependent
+probability floor — and choose the veer with the cheapest crit-weighted
+future. The reactive baseline gets the same encoder — and, deliberately, a
+*privileged* evasion direction. It can only lose on timing, so the comparison
+isolates anticipation. Step 4c then sweeps the cruise speed on single-pillar
+courses (the threat both policies can see): reaction triggers at a fixed
+*distance*, anticipation at a fixed *time* — raise the speed and only one of
+those budgets survives.
 
 Each script self-generates what it needs and runs on its own with `--selftest`.
 
@@ -129,15 +153,15 @@ Each script self-generates what it needs and runs on its own with `--selftest`.
 Step 1 (measured locally, full run):
 
 ```
-WM-DATA OK: 64 rollouts x 120 steps @ 48 Hz, 89 held intervention segments, labels [k=4: n=7070 pos=0.19, k=8: n=6468 pos=0.20, k=16: n=5268 pos=0.23, k=32: n=2982 pos=0.31], saved .../output/wm_dataset.npz
+WM-DATA OK: 64 rollouts x 120 steps @ 48 Hz, 87 held intervention segments, labels [k=4: n=7076 pos=0.25, k=8: n=6472 pos=0.27, k=16: n=5266 pos=0.30, k=32: n=3020 pos=0.39], saved .../output/wm_dataset.npz
 ```
 
-Step 2 asserts the predictor beats "future == present", per-horizon AUC, the
-danger-now head, **and the veer ranking** — the number that says the model can
-choose, not just detect (rollout-level split, so nothing leaks):
+Step 2 asserts the predictor beats "future == present", per-horizon AUC (warn
+ring), the danger-now head, **and the veer ranking** — the number that says
+the model can choose, not just detect (rollout-level split, so nothing leaks):
 
 ```
-WORLD-MODEL OK: 2408 train seqs, latent MSE@32=0.587 (no-op 3.745), AUC@4/8/16/32=0.98/0.98/0.98/0.99, now-AUC=0.91, veer-ranking=1.00 (n=34), int8 weights=81.0 KB (<512 fits), saved .../output/world_model.pth
+WORLD-MODEL OK: 2442 train seqs, latent MSE@32=1.200 (no-op 2.538), AUC@4/8/16/32=0.96/0.96/0.96/0.96, now-AUC=0.81, veer-ranking=1.00 (n=25), int8 weights=81.3 KB (<512 fits), saved .../output/world_model.pth
 ```
 
 Step 4 flies the same course twice from vision alone and asserts the earlier
@@ -145,49 +169,68 @@ trigger, the clearance gain, no crash, goal reached — no privileged look-ahead
 anywhere in control:
 
 ```
-WM-CLOSED-LOOP OK: reactive min-clear=0.35 m (trigger@64), wm min-clear=0.43 m (trigger@28), lead=+36 steps (~750 ms earlier), crashes reactive/wm = 0/0, goal steps = 187/199 — danger signal from camera alone (no privileged look-ahead in control)
+WM-CLOSED-LOOP OK: reactive min-clear=0.38 m (trigger@60), wm min-clear=0.48 m (trigger@36), lead=+24 steps (~500 ms earlier), crashes reactive/wm = 0/0, goal steps = 187/198 — danger signal from camera alone (no privileged look-ahead in control)
 ```
 
-Step 4b is the honest scoreboard — 100 random courses (70 threatened, 30 clear
-for false-positive probing) plus the on-board bill an embedded engineer asks
-for (weights are not the whole story: activations and DMA workspace share the
-same 512 KB):
+Step 4b is the cluttered scoreboard — 100 random multi-pillar courses (70
+threatened, 30 clear for false-positive probing) plus the on-board bill an
+embedded engineer asks for (weights are not the whole story: activations and
+DMA workspace share the same 512 KB):
 
 ```
 WORLD-POLICY OK: seeds=100 (70 in-path / 30 clear)
-  crash_rate:        reactive 0% -> wm 0%
-  mean_min_clearance: 0.40 m -> 0.50 m
-  mean_trigger_lead: +725 ms (n=70 both triggered)
+  crash_rate:        reactive 1% -> wm 16%
+  mean_min_clearance: 0.41 m -> 0.38 m
+  mean_trigger_lead: +243 ms (n=70 both triggered)
   false_positive:    reactive 0% -> wm 0% of clear runs
-  goal_time:         wm +8% vs reactive (n=69 clean)
+  goal_time:         wm +2% vs reactive (n=58 clean)
   decision latency:  0.4 ms measured (this CPU) | ~8 ms est @ GAP8 0.5 GMAC/s (3.9 M MACs, encoder shared across 6 candidates)
-ONBOARD-BUDGET OK: weights=81.0 KB + peak_activation=28.0 KB + workspace(dbl-buf)=28.0 KB = 137.0 KB < 512 KB
+ONBOARD-BUDGET OK: weights=81.3 KB + peak_activation=28.0 KB + workspace(dbl-buf)=28.0 KB = 137.3 KB < 512 KB
 ```
 
-Read the numbers like a robot person: anticipation buys **+25 % clearance** and
-a **+725 ms** head start at an **+8 %** time cost, with **zero** false evasions
-on safe courses — and the whole stack fits the GAP8 budget almost 4× over. At
-this cruise speed (0.8 m/s) the generously-handicapped reactive baseline also
-stays crash-free: the world model's win here is *margin and time*, which is
-exactly what turns into crashes-avoided as speed rises (see *Going further*).
+Step 4c is the mechanism, measured — 30 single-pillar courses per cruise
+speed, same seeds at every speed:
+
+| cruise | reactive crash | wm crash | mean clearance |
+|---|---|---|---|
+| 0.8 m/s | 0 % | 10 % | 0.43 → 0.45 m |
+| 1.0 m/s | 0 % | **0 %** | 0.45 → 0.51 m |
+| 1.2 m/s | 3 % | **0 %** | 0.38 → **0.62 m** |
+| 1.4 m/s | **40 %** | **0 %** | 0.27 → **0.59 m** |
+| 1.6 m/s | **60 %** | **10 %** | 0.20 → **0.55 m** |
+
+```
+SPEED-SWEEP OK: 30 single-pillar courses/speed — at 0.8 m/s crash reactive/wm = 0%/10%; at 1.6 m/s crash reactive/wm = 60%/10% — reaction pays a distance, anticipation pays time
+```
+
+Read the two scoreboards together, like a robot person would. **Step 4c is the
+mechanism**: the reactive trigger fires at a fixed *distance*, so raising the
+speed spends its budget — 0 % to 60 % crashes — while the anticipating MPC
+triggers at a fixed *time* and holds 0–10 % with 2–3× the clearance at speed.
+**Step 4b is the honest limit**: on cluttered courses the side pillars sit at
+60–90° bearings, outside the forward camera's FOV, and the memoryless planner
+pays a 16 % crash tail there that the privileged-direction baseline does not —
+while keeping zero false evasions and a +2 % time cost. The model is no longer
+the bottleneck (veer-ranking 1.00); the hand-crafted cost function is — eight
+planner configurations were measured to establish that, and it is exactly why
+*Going further* points at learned policies and memory.
 
 ## Going further
 
-- **Raise the speed until reaction breaks.** Both controllers fly 0.8 m/s here.
-  Sweep the cruise speed upward and the reactive baseline starts clipping
-  pillars while the anticipating MPC keeps its margin — that sweep turns the
-  clearance gap into a crash-rate gap.
+- **Learn the policy — the measured next step.** Eight hand-tuned planner
+  configurations were measured for this lesson; each fixed one failure mode
+  and exposed the next. The model's rankings are perfect; the hand-crafted
+  cost is the bottleneck. Feed the per-horizon warn/crit probabilities into
+  Lesson 19's RL observation and let the avoidance policy be *learned* — that
+  is how the cluttered-course tail closes without whack-a-mole.
 - **Give the model memory.** Fixed-yaw translation leaves side threats outside
-  the 60° FOV (this lesson honestly masks those labels as unanswerable). A tiny
-  GRU over `z_t`, or yaw-aligned flight, would let the drone *remember* the
-  pillar it just saw — the next real step toward cluttered courses.
+  the 60° FOV (this lesson honestly masks those labels as unanswerable, and
+  step 4b prices the consequence at 16 %). A tiny GRU over `z_t`, or
+  yaw-aligned flight, would let the drone *remember* the pillar it just saw.
 - **Metric-ground the latent (research-grade).** Use **4D-GS offline** to
   produce geometry-consistent occupancy and add a geometry-grounded
   latent-prediction loss, so `ẑ_{t+k}` decodes to a collision-checkable
   distance — V-JEPA's latency with 4D-GS's grounding.
-- **Feed it to the policy.** Add the predicted per-horizon danger to Lesson
-  19's RL observation — a learned proactive avoider instead of a hand-coded
-  cost function.
 - **Honest gaps.** The counterfactual oracle exists because sim labels are
   privileged anyway; with real-world data you are back to executed-action
   supervision and need far more of it. The danger labels are planar (visual-only
@@ -232,8 +275,13 @@ GAP8。所以你不是下載它，而是在 512KB int8 預算內**訓練你自�
 - **Predictor** `g_φ`：`(z_t, action) → ẑ_{t+k}`，**四個 horizon** `k ∈ {4, 8, 16, 32}` 步
   （48Hz 下約 83 / 167 / 333 / 667 ms）——一個共享 trunk，每個 horizon 一顆小殘差 head
   （`ẑ = z_t + Δ_k`，「什麼都不變」是免費基線）。「預判」是關於**時間**的宣稱：要提早 ~700ms
-  反應，模型就得預測 ~700ms 遠，而不是固定一跳 167ms。
-- **Collision heads**：`ẑ_k → P(k 步內太靠近)`，每個 horizon 一顆——**預判**訊號。
+  反應，模型就得預測 ~700ms 遠，而不是固定一跳 167ms。而且每條訓練 rollout 都把整組指令
+  乘上一個巡航速度倍率（0.6–1.6 m/s），讓 heads 學會「危險是指令速度的函數」——這正是
+  step 4c 的動力來源。
+- **Collision heads**：`ẑ_k → P(k 步內進入 0.7m)` **與** `P(k 步內進入 0.35m)`——每個 horizon
+  一組**警戒環**與**臨界環**。要兩個環，因為單一個環是「區域測試」不是「風險梯度」：
+  在 0.7m 環內，*每個*動作都會「警戒」（繞過柱子本來就會短暫壓進 0.7m——預測是對的），
+  只有臨界環還分得出「擦身而過」與「真的要撞」。（單環實測：planner 在邊界凍結成永久懸停。）
 - **Danger-now head**：`z_t → P(現在就太靠近)`——**反應式**訊號，刻意保留：它是預判必須在
   「同一顆感測器」條件下打敗的誠實基線。
 
@@ -259,7 +307,13 @@ hover——持續到蓋滿最長 horizon。記錄的是**commanded setpoint** �
 裡 37 個的威脅在 66–84° 方位——根本看不見）、最後是上面的方位感知池化（根因）。教訓是：
 **AUC 高不代表模型會排序動作——要測決策，不是只測偵測。**這個測試以 `veer-ranking` 指標
 隨課出貨：在幾何上一側明確較安全的 held-out 幀上，模型是否把較安全的那側排前面？隨機是 0.5；
-本模型實測 1.00（n=34）。
+本模型實測 1.00。
+
+把 *planner* 閉起來用的是同一種紀律，一次量測解一個失效模式：對 horizon 取 max 的危險度在
+環邊一票否決造成癱瘓（→ 急迫度加權）；單環在環內沒有梯度（→ 臨界環）；絕對觸發門檻繼承了
+heads 依場景而異的機率地板、在每條乾淨航道上誤觸發（→ **相對**邊際觸發）；減速是會爬進環內的
+假逃生（→ 只用側移逃生）；長 commit 等於盲飛（→ 短 commit＋用自身里程計做走廊回中先驗）。
+後設教訓：**疊在學習頭上的每一條 planner 假設都是待驗證的假說——量測它。**
 
 **為什麼選隱空間（V-JEPA），而非顯式 4D 幾何（4D-GS）？**兩者都是世界模型，但在權衡的兩端。
 
@@ -282,16 +336,19 @@ python lessons/29_world_model/gen_wm_dataset.py --rollouts 64    # 1. interventi
 python lessons/29_world_model/train_world_model.py --epochs 80   # 2. 訓練 nano V-JEPA
 python lessons/29_world_model/proactive_avoid.py                 # 3. 決策時機示意
 python lessons/29_world_model/wm_closed_loop.py                  # 4. 純視覺閉環
-python lessons/29_world_model/eval_world_model_policy.py         # 4b. 100-seed 記分板
+python lessons/29_world_model/eval_world_model_policy.py         # 4b. 雜訊場景記分板
+python lessons/29_world_model/speed_sweep.py                     # 4c. 墜機率 vs 速度
 ```
 
 Step 3（`proactive_avoid.py`）用 privileged 幾何隔離出決策*時機*——一張示意圖。Step 4 拆掉
 柺杖：控制迴路裡的危險訊號**只來自相機**（encoder → predictor → collision heads），柱子位置
 只用來佈置場景與事後評分。planner 是一個 12Hz 的 tiny **latent MPC**：每幀 encode **一次**，
 用小 MLP 把每個候選指令的未來都「想」一遍（昂貴的 encoder 共用，所以在 GAP8 上整段深思幾乎
-免費），以 `6·danger + heading + 0.5·switch − 1.5·progress` 挑最便宜的未來。反應式基線用同一顆
-encoder——並且**刻意**拿到 privileged 的閃避方向：它只可能輸在時機上，比較因此把「預判」單獨
-隔離出來。
+免費）；當「直行」被預測得比較好的那側側移**明顯更危險**時才觸發逃生——**相對**觸發，因為
+絕對門檻會繼承 heads 依場景而異的機率地板——並以臨界環加權的 cost 挑最便宜的側移。反應式
+基線用同一顆 encoder——並且**刻意**拿到 privileged 的閃避方向：它只可能輸在時機上，比較因此
+把「預判」單獨隔離出來。Step 4c 再把巡航速度往上掃（單柱航道，威脅雙方都看得見）：反應式在
+固定*距離*觸發、預判在固定*時間*觸發——速度一拉高，只有一種預算撐得住。
 
 每支腳本都自產所需資料，可用 `--selftest` 獨立執行。
 
@@ -300,55 +357,72 @@ encoder——並且**刻意**拿到 privileged 的閃避方向：它只可能輸
 Step 1（本機實測，完整跑）：
 
 ```
-WM-DATA OK: 64 rollouts x 120 steps @ 48 Hz, 89 held intervention segments, labels [k=4: n=7070 pos=0.19, k=8: n=6468 pos=0.20, k=16: n=5268 pos=0.23, k=32: n=2982 pos=0.31], saved .../output/wm_dataset.npz
+WM-DATA OK: 64 rollouts x 120 steps @ 48 Hz, 87 held intervention segments, labels [k=4: n=7076 pos=0.25, k=8: n=6472 pos=0.27, k=16: n=5266 pos=0.30, k=32: n=3020 pos=0.39], saved .../output/wm_dataset.npz
 ```
 
-Step 2 驗證 predictor 贏過「未來＝現在」、各 horizon 的 AUC、danger-now head、
+Step 2 驗證 predictor 贏過「未來＝現在」、各 horizon 的 AUC（警戒環）、danger-now head、
 **以及 veer ranking**——證明模型會「選」而不只會「偵測」的那個數字（rollout 層級切分，零洩漏）：
 
 ```
-WORLD-MODEL OK: 2408 train seqs, latent MSE@32=0.587 (no-op 3.745), AUC@4/8/16/32=0.98/0.98/0.98/0.99, now-AUC=0.91, veer-ranking=1.00 (n=34), int8 weights=81.0 KB (<512 fits), saved .../output/world_model.pth
+WORLD-MODEL OK: 2442 train seqs, latent MSE@32=1.200 (no-op 2.538), AUC@4/8/16/32=0.96/0.96/0.96/0.96, now-AUC=0.81, veer-ranking=1.00 (n=25), int8 weights=81.3 KB (<512 fits), saved .../output/world_model.pth
 ```
 
 Step 4 只靠視覺把同一條航道飛兩次，驗證更早觸發、更大淨空、不墜機、抵達終點——控制路徑中
 沒有任何 privileged look-ahead：
 
 ```
-WM-CLOSED-LOOP OK: reactive min-clear=0.35 m (trigger@64), wm min-clear=0.43 m (trigger@28), lead=+36 steps (~750 ms earlier), crashes reactive/wm = 0/0, goal steps = 187/199 — danger signal from camera alone (no privileged look-ahead in control)
+WM-CLOSED-LOOP OK: reactive min-clear=0.38 m (trigger@60), wm min-clear=0.48 m (trigger@36), lead=+24 steps (~500 ms earlier), crashes reactive/wm = 0/0, goal steps = 187/198 — danger signal from camera alone (no privileged look-ahead in control)
 ```
 
-Step 4b 是誠實記分板——100 條隨機航道（70 條有威脅、30 條乾淨，用來抓 false positive），
-加上嵌入式工程師真正會問的機上帳單（weights 不是全部：activation 與 DMA workspace 共用同一塊
-512 KB）：
+Step 4b 是雜訊場景記分板——100 條隨機多柱航道（70 條有威脅、30 條乾淨，用來抓 false
+positive），加上嵌入式工程師真正會問的機上帳單（weights 不是全部：activation 與 DMA workspace
+共用同一塊 512 KB）：
 
 ```
 WORLD-POLICY OK: seeds=100 (70 in-path / 30 clear)
-  crash_rate:        reactive 0% -> wm 0%
-  mean_min_clearance: 0.40 m -> 0.50 m
-  mean_trigger_lead: +725 ms (n=70 both triggered)
+  crash_rate:        reactive 1% -> wm 16%
+  mean_min_clearance: 0.41 m -> 0.38 m
+  mean_trigger_lead: +243 ms (n=70 both triggered)
   false_positive:    reactive 0% -> wm 0% of clear runs
-  goal_time:         wm +8% vs reactive (n=69 clean)
+  goal_time:         wm +2% vs reactive (n=58 clean)
   decision latency:  0.4 ms measured (this CPU) | ~8 ms est @ GAP8 0.5 GMAC/s (3.9 M MACs, encoder shared across 6 candidates)
-ONBOARD-BUDGET OK: weights=81.0 KB + peak_activation=28.0 KB + workspace(dbl-buf)=28.0 KB = 137.0 KB < 512 KB
+ONBOARD-BUDGET OK: weights=81.3 KB + peak_activation=28.0 KB + workspace(dbl-buf)=28.0 KB = 137.3 KB < 512 KB
 ```
 
-用機器人工程師的方式讀這些數字：預判用 **+8% 的時間成本**買到 **+25% 淨空**與 **+725ms** 的
-提前量，乾淨航道上**零**誤閃避——而且整套堆疊塞進 GAP8 預算還剩近 4 倍空間。在這個巡航速度
-（0.8 m/s）下，拿了 privileged 方向的反應式基線也不會墜機：世界模型在這裡贏的是**餘裕與時間**，
-而那正是速度一拉高就會變成「少墜機」的東西（見*延伸*）。
+Step 4c 是機制本身的量測——每個巡航速度 30 條單柱航道、跨速度同一組 seeds：
+
+| 巡航 | reactive 墜機 | wm 墜機 | 平均淨空 |
+|---|---|---|---|
+| 0.8 m/s | 0 % | 10 % | 0.43 → 0.45 m |
+| 1.0 m/s | 0 % | **0 %** | 0.45 → 0.51 m |
+| 1.2 m/s | 3 % | **0 %** | 0.38 → **0.62 m** |
+| 1.4 m/s | **40 %** | **0 %** | 0.27 → **0.59 m** |
+| 1.6 m/s | **60 %** | **10 %** | 0.20 → **0.55 m** |
+
+```
+SPEED-SWEEP OK: 30 single-pillar courses/speed — at 0.8 m/s crash reactive/wm = 0%/10%; at 1.6 m/s crash reactive/wm = 60%/10% — reaction pays a distance, anticipation pays time
+```
+
+把兩張記分板放在一起、用機器人工程師的方式讀。**Step 4c 是機制**：反應式在固定*距離*觸發，
+速度一拉高就把預算花光——墜機率 0% 飆到 60%；會預判的 MPC 在固定*時間*觸發，全程壓在
+0–10%，高速下淨空還有 2–3 倍。**Step 4b 是誠實的極限**：雜訊航道的側柱位在 60–90° 方位、
+在前向相機 FOV 之外，無記憶的 planner 在那裡付出 16% 的墜機尾巴（拿了 privileged 方向的基線
+不用付）——但誤閃避保持零、時間成本 +2%。模型已經不是瓶頸（veer-ranking 1.00）；手寫 cost
+函數才是——這是量測了八種 planner 配置後確立的結論，也正是*延伸*指向「學出來的策略與記憶」
+的原因。
 
 ## 延伸
 
-- **把速度拉高到反應式撐不住。**這裡雙方都飛 0.8 m/s。把巡航速度往上掃，反應式基線會開始
-  擦到柱子，而會預判的 MPC 保得住餘裕——那次掃描會把「淨空差」變成「墜機率差」。
+- **把策略學出來——量測指出的下一步。**本課為了閉環量測了八種手調 planner 配置；每修一個
+  失效模式就暴露下一個。模型的排序已經完美，手寫 cost 才是瓶頸。把各 horizon 的 warn/crit
+  機率餵進 Lesson 19 的 RL 觀測、讓避障策略*被學出來*——雜訊航道的尾巴要這樣關，不是繼續
+  打地鼠。
 - **給模型記憶。**固定 yaw 的平移會讓側面威脅留在 60° FOV 之外（本課誠實地把那些標籤遮罩為
-  「答不了」）。在 `z_t` 上加一顆 tiny GRU、或改成 yaw 對齊速度的飛法，無人機就能*記得*剛看過
-  的柱子——通往雜亂場景的下一步。
+  「答不了」，step 4b 把後果標成 16%）。在 `z_t` 上加一顆 tiny GRU、或改成 yaw 對齊速度的
+  飛法，無人機就能*記得*剛看過的柱子。
 - **把隱空間度量接地（研究級）。**用 **4D-GS 離線**產生幾何一致的 occupancy，加一個
   geometry-grounded latent-prediction loss，讓 `ẑ_{t+k}` 能解碼成可做碰撞檢測的距離——
   V-JEPA 的延遲換到 4D-GS 的接地。
-- **餵給策略。**把各 horizon 的預測危險加進 Lesson 19 的 RL 觀測——用學出來的預判避障，
-  取代手寫 cost function。
 - **誠實的落差。**counterfactual oracle 之所以存在，是因為模擬器標籤本來就是 privileged 的；
   換成真實資料就回到只有 executed-action 監督、而且需要多得多的資料。danger 標籤是平面的
   （柱子只有視覺體），這也是為什麼 `climb` 在模型詞彙表裡、卻不在 planner 菜單上。而這是

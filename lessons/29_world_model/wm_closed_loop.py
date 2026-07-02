@@ -15,18 +15,27 @@ Two controllers fly the same course (same seed, same pillars):
     evasion *direction* from privileged pillar positions — a deliberately
     generous opponent. If anticipation still wins on clearance while choosing
     its own direction from vision, the win is real.
-  * **wm (proactive)** — a tiny **latent MPC**. At ~12 Hz (an on-board-honest
-    decision rate) it encodes the frame once, then asks the predictor "and if
-    I held *this* command?" for every candidate on its menu. Each answer costs
-    one pass through a small MLP — the expensive encoder is shared — so on a
-    GAP8 the whole deliberation is nearly free. It picks the cheapest action:
+  * **wm (proactive)** — a tiny **latent MPC**: an anticipatory *trigger* plus
+    a safest-veer *chooser*, at ~12 Hz (an on-board-honest decision rate).
+    Each decision encodes the frame once, then asks the predictor "and if I
+    held *this* command?" for every candidate — the expensive encoder is
+    shared, so on a GAP8 the whole deliberation is nearly free. The trigger is
+    *relative*: evade when going straight is predicted meaningfully more
+    warn-dangerous than the better veer (an absolute threshold inherits the
+    heads' course-dependent probability floor and false-triggers — measured),
+    with an absolute near-term *crit* backstop for the moment everything
+    saturates together. On trigger it commits ~0.5 s to the veer with the
+    cheapest predicted future:
 
-      cost = 6 * danger  +  1 * heading_error  +  0.5 * switch  -  1.5 * progress
+      cost = 6*(0.25*warn + 0.75*crit) + heading + 1.5*|y_after| - 1.2*progress
 
-    where danger is the worst collision probability across the four horizons.
-    Anticipation means the danger term rises ~600 ms before the reactive one,
-    so the veer starts earlier and the miss is wider — the whole lesson in one
-    number.
+    The *critical* ring (0.35 m) keeps that choice sighted inside the warn
+    ring (where every moving action correctly "warns"), and the |y_after| term
+    is a corridor-centering prior from the drone's own odometry — because the
+    camera cannot see 60° to the side, the planner prefers not to wander
+    there. Anticipation means this cascade starts ~500 ms before the reactive
+    trigger at cruise — and at speed it is the difference between dodging and
+    hitting (step 4c).
 
 Run:
   python lessons/29_world_model/wm_closed_loop.py             # saves the plot
@@ -67,7 +76,24 @@ TMAX = 360  # step budget (7.5 s @ 48 Hz)
 DECIDE_EVERY = 4  # decide at 12 Hz — an honest on-board rate; PID stays 48 Hz
 THETA_NOW = 0.5  # reactive trigger on P(too close now)
 EVADE_HOLD = 24  # reactive holds its evasion ~0.5 s before re-checking
-W_DANGER, W_HEAD, W_SWITCH, W_PROG = 6.0, 1.0, 0.5, 1.5  # MPC cost weights
+W_DANGER, W_HEAD, W_SWITCH, W_PROG = 6.0, 1.0, 0.5, 1.2  # MPC cost weights
+W_CENTER = 1.5  # corridor-centering prior. The camera cannot see a pillar
+# 60 deg to the side (the honest FOV limit), so all else near-equal the
+# planner prefers motion that ends nearer the corridor centre — computed from
+# the drone's OWN odometry (its y), never from pillar positions. Measured
+# without it: blind-side clips on courses whose side pillars sat exactly
+# where the evasion wandered.
+# Urgency weights over the horizons (83/167/333/667 ms). Imminent danger
+# counts fully; distant danger is an early warning. A flat max-over-horizons
+# would treat "will cross 0.7 m within 667 ms" as a veto — but passing a
+# pillar at a safe 0.5 m *is* such a crossing, so far horizons must warn,
+# not forbid.
+W_HORIZON = (1.0, 0.6, 0.35, 0.2)
+MARGIN_WM = 0.4  # evade when going straight is predicted this much more
+# warn-dangerous (urgency-weighted) than the better veer — a *relative*
+# trigger, immune to the course-dependent probability floor that defeats any
+# absolute threshold (measured: fixed thresholds false-trigger on clear
+# courses and under-trigger on cluttered ones)
 SCENARIO_SEED = 11  # the demo course (step-4 eval sweeps many seeds)
 OUT = os.path.join(HERE, "output", "wm_closed_loop.png")
 
@@ -78,52 +104,88 @@ def _frame_tensor(frame: np.ndarray) -> torch.Tensor:
 
 
 class WMPolicy:
-    """Latent MPC from vision alone: encode once, imagine every candidate,
-    pick the cheapest future. Never sees the pillar positions."""
+    """Latent MPC from vision alone: an anticipatory trigger plus a
+    safest-veer chooser. Never sees the pillar positions.
 
-    def __init__(self, enc, pred, cheads, meta):
+    The trigger is *relative*, not a fixed threshold: evade when continuing
+    forward is predicted MARGIN_WM more warn-dangerous than the better veer.
+    Relative, because the heads carry a course-dependent probability floor
+    (open-space haze, side-pillar clutter) that shifts every candidate
+    together — an absolute threshold tuned on one course false-triggers on
+    another (measured: 100% false positives on clear courses), while the
+    *difference* only opens when something actually blocks the way ahead.
+    On trigger, commit ~0.5 s to the veer with the cheapest predicted future
+    (crit-weighted — inside the warn ring only the bad actions are *about to
+    hit*), with a corridor-centering prior from the drone's own odometry."""
+
+    def __init__(self, enc, pred, cheads, meta, speed: float = 1.0):
         self.enc, self.pred, self.cheads = enc, pred, cheads
         names = list(meta["action_names"])
-        vecs = np.array(meta["action_vecs"], dtype=np.float32)
+        vecs = float(speed) * np.array(meta["action_vecs"], dtype=np.float32)
         # The planner's menu. The corridor task is planar and `climb` games the
         # planar danger label (a slower planar approach scores "safer" without
         # ever engaging the visual task — traced: the MPC climbed over the
         # course), so the planner leaves it off the menu; the model itself
         # still knows the full six-command vocabulary.
         self.ids = [i for i, n in enumerate(names) if n != "climb"]
+        self.i_fwd = self.ids.index(FORWARD)
+        self.i_veers = [
+            self.ids.index(names.index(n)) for n in ("veer_left", "veer_right")
+        ]
         sub = vecs[self.ids]
         self.cands = torch.tensor(sub / np.array(meta["a_norm"], dtype=np.float32))
         # per-candidate cost terms that never change: heading error vs the +x
-        # goal direction, and forward progress (commanded vx)
+        # goal direction, and forward progress normalised to the menu's fastest
+        # candidate — so the cost trade-offs are identical at every cruise speed
         xy = sub[:, :2]
-        speed = np.linalg.norm(xy, axis=1)
+        spd = np.linalg.norm(xy, axis=1)
         self.heading = torch.tensor(
-            np.where(speed > 1e-6, 1.0 - xy[:, 0] / np.maximum(speed, 1e-6), 1.0),
+            np.where(spd > 1e-6, 1.0 - xy[:, 0] / np.maximum(spd, 1e-6), 1.0),
             dtype=torch.float32,
         )
-        self.progress = torch.tensor(sub[:, 0])
-        self.prev = FORWARD
+        self.progress = torch.tensor(sub[:, 0] / max(float(sub[:, 0].max()), 1e-6))
+        self.vy = sub[:, 1]  # for the centering prior (own odometry only)
+        h_w = list(W_HORIZON)[: len(meta["horizons"])]
+        self.h_w = torch.tensor(h_w, dtype=torch.float32)
+        self.hold, self.evade = 0, FORWARD
 
     def begin(self, pillars) -> None:
         del pillars  # vision only — the whole point
-        self.prev = FORWARD
+        self.hold, self.evade = 0, FORWARD
 
     def decide(self, frame: np.ndarray, state: np.ndarray) -> int:
-        del state  # no privileged pose-vs-pillar geometry either
+        # `state` supplies the drone's OWN odometry (y, for the centering
+        # prior) — its knowledge of itself, never of the pillars
+        if self.hold > 0:  # fly the chosen maneuver through
+            self.hold -= DECIDE_EVERY
+            return self.evade
         with torch.no_grad():
             z = self.enc(_frame_tensor(frame))  # encoder runs ONCE
             z_hat = self.pred(z.expand(len(self.cands), -1), self.cands)
-            p = torch.sigmoid(self.cheads(z_hat))  # (n_cands, n_horizons)
-        danger = p.max(dim=1).values  # worst case across 83..667 ms
-        switch = torch.tensor([0.0 if a_id == self.prev else 1.0 for a_id in self.ids])
+            p = torch.sigmoid(self.cheads(z_hat))  # (n_cands, horizons, 2 rings)
+        warn = p[:, :, 0] @ self.h_w  # urgency-weighted "close soon"
+        crit = p[:, :, 1] @ self.h_w  # urgency-weighted "about to hit"
+        edge = float(warn[self.i_fwd]) - min(float(warn[i]) for i in self.i_veers)
+        # the relative margin has a blind spot: when the drone is already deep
+        # in trouble every candidate saturates together and the difference
+        # *collapses* — so an absolute near-term backstop ("straight ahead hits
+        # within ~170 ms") forces the evasion the margin can no longer see
+        imminent = float(p[self.i_fwd, :2, 1].max())
+        if edge < MARGIN_WM and imminent < 0.5:
+            self.evade = FORWARD  # ahead is no worse than aside — keep flying
+            return FORWARD
+        danger = 0.25 * warn + 0.75 * crit  # crit carries the in-ring gradient
+        y_after = float(state[1]) + self.vy * (EVADE_HOLD / CTRL_HZ)
         cost = (
             W_DANGER * danger
             + W_HEAD * self.heading
-            + W_SWITCH * switch
+            + W_CENTER * torch.tensor(np.abs(y_after), dtype=torch.float32)
             - W_PROG * self.progress
         )
-        self.prev = self.ids[int(cost.argmin())]
-        return self.prev
+        j = min(self.i_veers, key=lambda i: float(cost[i]))
+        self.evade = self.ids[j]
+        self.hold = EVADE_HOLD
+        return self.evade
 
 
 class ReactivePolicy:
@@ -158,18 +220,27 @@ class ReactivePolicy:
 
 
 def run_episode(
-    env, policy, scenario_seed: int, tmax: int = TMAX, in_path: bool = True
+    env,
+    policy,
+    scenario_seed: int,
+    tmax: int = TMAX,
+    in_path: bool = True,
+    speed: float = 1.0,
+    solo: bool = False,
 ) -> dict:
     """Fly START -> GOAL_X once under `policy`. The same seed reproduces the
     same pillar course, so two policies can fly literally the same test.
     `in_path=False` gives a course that is safe if flown straight — the
-    step-4b eval uses those to count false-positive evasions."""
+    step-4b eval uses those to count false-positive evasions. `speed` scales
+    the whole command set and `solo` strips the side clutter (the step-4c
+    sweep raises speed on single-pillar courses until reaction breaks)."""
     rng = np.random.default_rng(scenario_seed)
     obs, _ = env.reset(seed=int(scenario_seed))
     cmd = VelCommander(make_ctrl(), env.CTRL_TIMESTEP)
     cmd.reset(obs[0][0:3])
-    pillars = spawn_pillars(env, rng, in_path=in_path)
+    pillars = spawn_pillars(env, rng, in_path=in_path, solo=solo)
     policy.begin(pillars)
+    vecs = float(speed) * ACTION_VECS
 
     state, a_id, trigger = obs[0], FORWARD, -1
     path, min_clear = [state[0:3].copy()], 9.0
@@ -178,7 +249,7 @@ def run_episode(
             a_id = policy.decide(grab_frame(env), state)
             if a_id != FORWARD and trigger < 0:
                 trigger = t
-        obs, _, _, _, _ = env.step(cmd.rpm(state, ACTION_VECS[a_id]).reshape(1, 4))
+        obs, _, _, _, _ = env.step(cmd.rpm(state, vecs[a_id]).reshape(1, 4))
         state = obs[0]
         path.append(state[0:3].copy())
         min_clear = min(min_clear, nearest_planar(state[0:2], pillars))

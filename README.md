@@ -1,6 +1,6 @@
 # nanodrone-ai
 
-> **NanoDrone-AI: a sim-first, on-device autonomy stack for 27 g micro-drones — culminating in a tiny latent world model that anticipates collisions ~700 ms before they happen.**
+> **NanoDrone-AI: a sim-first, on-device autonomy stack for 27 g micro-drones — culminating in a tiny latent world model that anticipates collisions before they happen.**
 >
 > Beginner-friendly and step-by-step: start in simulation for $0, graduate to a real Crazyflie that flies itself fully offline.
 
@@ -84,7 +84,7 @@ The **flight controller** keeps the drone from falling out of the sky (a hard re
 | **26** | Field-test SOP + regulations | $0 | A GO/NO-GO pre-flight gate + Taiwan CAA checklist |
 | **27** | Extract the flight protocol | $0 | One schema (`nanodrone.protocol`) reused everywhere |
 | **28** | Parser arena (counter-example) | $0 | When a general model + constraints beats training your own |
-| **29** | Nano world model (V-JEPA, on-board) | $0 | Predict the *next latent* at four horizons; a vision-only latent MPC dodges ~725 ms before reactive (137 KB on-board budget) |
+| **29** | Nano world model (V-JEPA, on-board) | $0 | Predict the *next latent* at four horizons; at speed, the vision-only latent MPC crashes 10 % where reactive crashes 60 % (137 KB on-board budget) |
 | **DroneVoice** | Apple app → on-device LLM → real drone | $0 sw | Fly by speaking from an iPhone (Phases 2–5; needs Apple hardware) |
 
 Each lesson follows the same five-part shape: **Why → Concept → Hands-on → Checkpoint → Going further.**

@@ -19,7 +19,7 @@
 後續課程整併成五條軌道：
 
 - **Track A — 編排主線（Orchestration）**：L11 狀態機骨幹 → L12 語音驅動轉移 → L13 多模態 mini-capstone → L16 畢業專題。這是所有走主線新手的必經路徑。
-- **Track B — 板載落地與感知深化（On-device / perception depth）**：L14a 建圖巡邏 → L14b 板載收斂；再往深處走 L17 單目深度 → L18 光流／VO → L19 多障礙 RL（餵感知）→ L20 域隨機化 → L21 蒸餾+壓縮 → L22 多能力蒸餾成單一板載策略。這條把「模擬器目前閒置的能力」逐步榨成自訓 int8 小模型，是招牌主題的深化主幹，也是把課程**貼近真機**而非帶離真機的關鍵。L29 再為本軌收尾，把這條線從*反應式*推進到*預判式*——且已閉環：nano V-JEPA 世界模型預測四個 horizon 的下一個隱空間（而非像素），由 12Hz 純視覺 latent MPC 飛行，100 條航道上平均比反應式基線早 ~725ms 觸發，板載預算 137KB。
+- **Track B — 板載落地與感知深化（On-device / perception depth）**：L14a 建圖巡邏 → L14b 板載收斂；再往深處走 L17 單目深度 → L18 光流／VO → L19 多障礙 RL（餵感知）→ L20 域隨機化 → L21 蒸餾+壓縮 → L22 多能力蒸餾成單一板載策略。這條把「模擬器目前閒置的能力」逐步榨成自訓 int8 小模型，是招牌主題的深化主幹，也是把課程**貼近真機**而非帶離真機的關鍵。L29 再為本軌收尾，把這條線從*反應式*推進到*預判式*——且已閉環：nano V-JEPA 世界模型預測四個 horizon 的警戒／臨界碰撞環（而非像素），由 12Hz 純視覺 latent MPC 飛行——1.4–1.6 m/s 下反應式基線在單柱航道墜機 40–60%，會預判的 MPC 壓在 0–10%，板載預算 137KB。
 - **Track C — DroneVoice Apple App（並行選修，需 Apple 硬體）**：L27 協定抽取（前置技術債）→ L28 解析評測擂台（反例對照組的量化地基）→ Phase 2 語音入口 → Phase 3 on-device LLM 解析（反例對照組）→ Phase 4 SwiftUI + 雙向遙測 + app failsafe → Phase 5 sim→真機（5a Tello 先、5b Crazyflie 收束）。無 iPhone 者皆有 100% 等價的 Python 驗收。
 - **Track D — 進階 going-further（純文件，不成課）**：swarm、追蹤魯棒性（卡爾曼）、segmentation 標資料等指路文件，給「想再往前」的人指路，不擋畢業。（感測器噪音／domain randomization 已升格為正式課 L20，從本軌移除。）
 - **Track E — 真機落地基礎設施（sim-to-real bring-up）**：L23 飛行黑盒子（遙測+回放）→ L24 Tello 平價真機踏腳石 → L25 sim-to-real 落差量測 → L26 實地測試 SOP + 台灣法規。這條把「會飛」變成「合法、安全、可回看、可上真機驗證地飛」，是主線／Track B 訓出的模型真正落地前的最後一哩。

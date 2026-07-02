@@ -64,6 +64,8 @@ IMG_RES = 64  # camera + network input (matches L3/L8/L17)
 HORIZONS = (4, 8, 16, 32)  # label horizons in control steps (~83..667 ms @ 48 Hz)
 H_MAX = HORIZONS[-1]
 DANGER_R = 0.7  # planar distance (m) that counts as "dangerously close" soon
+CRIT_R = 0.35  # planar distance (m) that counts as "about to hit" (crash + margin)
+RADII = (DANGER_R, CRIT_R)  # warn ring + critical ring — see the honest note
 COLLISION_R = 0.22  # planar distance (m) that counts as a crash (matches L3/L19)
 CTRL_HZ = 48
 FOV_HALF_DEG = 28  # camera half-FOV (the sim renders 60 deg; keep a margin)
@@ -83,8 +85,15 @@ ACTIONS = {
 ACTION_NAMES = list(ACTIONS)
 ACTION_VECS = np.array([ACTIONS[n] for n in ACTION_NAMES], dtype=np.float32)
 FORWARD = ACTION_NAMES.index("forward")
-# Per-dim normaliser so every action feeds the network in ~[-1, 1].
-A_NORM = np.maximum(np.abs(ACTION_VECS).max(axis=0), 1e-6).astype(np.float32)
+# Every rollout scales the whole command set by one cruise-speed factor. Danger
+# is a function of *how fast you are going*, so the model must see the same
+# corridor flown timidly and briskly — otherwise a faster planner would be
+# asking it questions from outside the training envelope.
+SPEED_RANGE = (0.75, 2.0)  # x base speeds -> 0.6..1.6 m/s cruise
+# Per-dim normaliser so every action (at any speed) feeds the network in ~[-1, 1].
+A_NORM = np.maximum(np.abs(ACTION_VECS).max(axis=0) * SPEED_RANGE[1], 1e-6).astype(
+    np.float32
+)
 
 OUT = os.path.join(os.path.dirname(__file__), "output", "wm_dataset.npz")
 
@@ -114,14 +123,18 @@ def make_ctrl():
     return DSLPIDControl(drone_model=DroneModel.CF2X)
 
 
-def spawn_pillars(env, rng, in_path: bool):
+def spawn_pillars(env, rng, in_path: bool, solo: bool = False):
     """Drop 2-3 visual pillars into a fresh (post-reset) arena and return their
     planar centres. `in_path=True` puts the first one in the forward corridor;
-    otherwise all sit off to the sides. Bodies are wiped by the next env.reset()."""
+    otherwise all sit off to the sides. `solo=True` places ONLY the in-path
+    pillar — the step-4c speed sweep uses it to test the anticipation-vs-
+    reaction mechanism on a threat both policies can actually see (side-pillar
+    clutter probes the FOV limit instead, and is measured separately).
+    Bodies are wiped by the next env.reset()."""
     import pybullet as p
 
     pillars = []
-    n = int(rng.integers(2, 4))
+    n = 1 if solo else int(rng.integers(2, 4))
     for i in range(n):
         if in_path and i == 0:
             px, py = float(rng.uniform(1.3, 2.0)), float(rng.uniform(-0.2, 0.2))
@@ -220,11 +233,13 @@ def gen(n_rollouts: int, length: int, seed: int = 0) -> dict:
     pos = np.zeros((R, L, 3), dtype=np.float32)
     pillars_meta = np.full((R, 3, 2), np.nan, dtype=np.float32)
     in_path = np.zeros(R, dtype=bool)
+    speed = np.zeros(R, dtype=np.float32)
 
     for r in range(R):
         obs, _ = env.reset(seed=int(rng.integers(2**31 - 1)))
         cmd.reset(START)
         in_path[r] = r % 2 == 0
+        speed[r] = rng.uniform(*SPEED_RANGE)
         pillars = spawn_pillars(env, rng, in_path=bool(in_path[r]))
         pillars_meta[r, : len(pillars)] = pillars
         act_id[r], seg[r] = _schedule(rng, L, passive=(r % 3 == 2))
@@ -234,13 +249,14 @@ def gen(n_rollouts: int, length: int, seed: int = 0) -> dict:
             frames[r, t] = grab_frame(env)
             pos[r, t] = state[0:3]
             dists[r, t] = nearest_planar(state[0:2], pillars)
-            v_cmd = ACTION_VECS[act_id[r, t]]
+            v_cmd = speed[r] * ACTION_VECS[act_id[r, t]]
             actions[r, t] = v_cmd
             obs, _, _, _, _ = env.step(cmd.rpm(state, v_cmd).reshape(1, 4))
             state = obs[0]
         held = sorted({ACTION_NAMES[i] for i in act_id[r][seg[r] > 0]})
         print(
             f"  rollout {r + 1}/{R} ({'in-path' if in_path[r] else 'clear'}, "
+            f"{speed[r]:.2f}x, "
             f"{'passive' if seg[r].max() == 0 else '+'.join(held)})"
         )
 
@@ -254,6 +270,7 @@ def gen(n_rollouts: int, length: int, seed: int = 0) -> dict:
         "pos": pos,
         "pillars": pillars_meta,
         "in_path": in_path,
+        "speed": speed,
         "horizons": np.array(HORIZONS, dtype=np.int16),
         "a_norm": A_NORM,
         "danger_r": np.float32(DANGER_R),
@@ -273,7 +290,14 @@ def counterfactual_labels(data: dict) -> tuple:
     Straight-line kinematics through the stored pillar layout (an approximation:
     no PID transient — stated, and symmetric across candidates, so rankings
     survive). Returns (labels, visible):
-      labels  uint8 (R, L, n_actions, n_horizons)
+      labels  uint8 (R, L, n_actions, n_horizons, n_radii) — one label per
+              ring in RADII. Two rings, because a single ring is a region
+              test, not a risk gradient: once the drone is inside the 0.7 m
+              warn ring, *every* action's warn label is 1 — including the one
+              that leaves — and a planner reading only that signal goes blind
+              exactly when it matters (measured: it braked to a permanent
+              hover mid-course). The 0.35 m critical ring separates "grazes
+              past" from "about to hit" everywhere.
       visible uint8 (R, L, n_actions) — 1 when the label is *answerable from
               this frame*: either it is negative ("see nothing -> safe"), or
               the threatening pillar sits inside the camera FOV. A single-frame
@@ -286,7 +310,7 @@ def counterfactual_labels(data: dict) -> tuple:
     command."""
     R, L = data["frames"].shape[:2]
     taus = np.arange(H_MAX + 1) / CTRL_HZ  # (K+1,)
-    cf = np.zeros((R, L, len(ACTION_VECS), len(HORIZONS)), dtype=np.uint8)
+    cf = np.zeros((R, L, len(ACTION_VECS), len(HORIZONS), len(RADII)), dtype=np.uint8)
     vis = np.ones((R, L, len(ACTION_VECS)), dtype=np.uint8)
     cos_fov = np.cos(np.radians(FOV_HALF_DEG))
     for r in range(R):
@@ -295,20 +319,20 @@ def counterfactual_labels(data: dict) -> tuple:
         if not len(pil):
             continue
         p0 = data["pos"][r, :, :2]  # (L, 2)
-        for i, v in enumerate(ACTION_VECS):
+        for i, v in enumerate(float(data["speed"][r]) * ACTION_VECS):
             # paths: (L, K+1, 2) -> distances to every pillar: (L, K+1, P)
             path = p0[:, None, :] + taus[None, :, None] * v[:2]
             d = np.linalg.norm(path[:, :, None, :] - pil[None, None], axis=3)
             for j, k in enumerate(HORIZONS):
-                cf[r, :, i, j] = (d[:, : k + 1].min(axis=(1, 2)) < DANGER_R).astype(
-                    np.uint8
-                )
+                dmin = d[:, : k + 1].min(axis=(1, 2))
+                for q, rad in enumerate(RADII):
+                    cf[r, :, i, j, q] = (dmin < rad).astype(np.uint8)
             # visibility of the threat (camera looks along +x, yaw held at 0):
             # a positive label caused by an out-of-FOV pillar is unanswerable
             threat = pil[d.min(axis=1).argmin(axis=1)]  # (L, 2)
             rel = threat - p0
             in_fov = rel[:, 0] > np.linalg.norm(rel, axis=1) * cos_fov
-            vis[r, :, i] = np.where(cf[r, :, i].any(axis=1) & ~in_fov, 0, 1)
+            vis[r, :, i] = np.where(cf[r, :, i, :, 0].any(axis=1) & ~in_fov, 0, 1)
     return cf, vis
 
 
@@ -368,7 +392,10 @@ def main() -> None:
         drift = np.abs(data["pos"][:, 0, :] - START).max()
         assert drift < 0.1, f"rollouts do not reset to START (drift {drift:.2f} m)"
         # commands are commanded, not measured: they must live on the action set
-        assert np.abs(data["actions"]).max() <= np.abs(ACTION_VECS).max() + 1e-6
+        env_max = np.abs(ACTION_VECS).max() * SPEED_RANGE[1]
+        assert np.abs(data["actions"]).max() <= env_max + 1e-6
+        # speed diversity is the point: the same command set flown at many paces
+        assert data["speed"].max() - data["speed"].min() > 0.3, "speeds too uniform"
         assert n_seg >= n_roll, "too few held segments for counterfactual contrast"
         assert len(held) >= 4, f"too little action diversity ({held})"
         for k, (n, p) in rates.items():
