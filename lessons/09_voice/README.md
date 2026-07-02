@@ -6,6 +6,8 @@
 
 ---
 
+> **In one line:** Speak and the drone obeys: an offline speech model turns your English or Chinese words into flight commands, no internet needed. · **Builds on:** L8
+
 ## Why
 
 Talk, and the drone flies. This is the most natural interface yet — and another
@@ -78,6 +80,8 @@ either language.
 # Lesson 9 — 語音操控飛行
 
 🌐 [English](#lesson-9--voice-controlled-flight) · **繁體中文**（以下）
+
+> **一句話：**開口就能指揮無人機：離線語音模型把你的中英文口令變成飛行指令，完全不用網路。 · **建立在：**第 8 課
 
 ## 為什麼
 

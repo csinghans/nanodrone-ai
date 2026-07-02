@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Turn pre-flight checks into an automatic GO / NO-GO gate and learn the safety habits and Taiwan rules for flying for real. · **Builds on:** L23, L11, L24
+
 ## Why
 
 The last mile of real flight isn't code — it's **procedure and compliance**.
@@ -74,6 +76,8 @@ screen; abort to land on anything unexpected. **After:** review the log
 # Lesson 26 — 實地測試 SOP 與台灣法規
 
 🌐 [English](#lesson-26--field-test-sop--taiwan-regulations) · **繁體中文**（以下）
+
+> **一句話：**把起飛前檢查變成自動的 GO / NO-GO 關卡，並學會實地試飛的安全習慣和台灣的法規。 · **建立在：**第 23 課、第 11 課、第 24 課
 
 ## 為什麼
 

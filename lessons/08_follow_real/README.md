@@ -6,6 +6,8 @@
 
 ---
 
+> **In one line:** Train a small neural network to spot a person by their look, not a colour, so the drone can follow a real human shape. · **Builds on:** L7
+
 ## Why
 
 Lesson 7 followed a bright-orange marker by colour. But you can't put an orange
@@ -75,6 +77,8 @@ rule anywhere. In the GUI, drive the person around and watch it trail you.
 # Lesson 8 — 跟隨真人（學習式偵測器）
 
 🌐 [English](#lesson-8--follow-a-real-person-learned-detector) · **繁體中文**（以下）
+
+> **一句話：**訓練一個小神經網路認出『人』而不只是認顏色，讓無人機能跟著真正的人形走。 · **建立在：**第 7 課
 
 ## 為什麼
 

@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Train a big accurate teacher model, then a much smaller student that mimics it and still fits the drone's tiny chip. · **Builds on:** L4, L17, L20, L3
+
 ## Why
 
 Lesson 4 checked a model's footprint and exported it — but stopped there. Lessons
@@ -62,6 +64,8 @@ enough to run on-board.
 # Lesson 21 — 知識蒸餾 + 模型壓縮
 
 🌐 [English](#lesson-21--knowledge-distillation--compression) · **繁體中文**（以下）
+
+> **一句話：**先訓練又大又準的老師模型，再讓小小的學生模型模仿它——準確度差不多，卻塞得進小晶片。 · **建立在：**第 4 課、第 17 課、第 20 課、第 3 課
 
 ## 為什麼
 

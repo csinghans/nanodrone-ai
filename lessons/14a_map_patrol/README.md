@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Send the drone on a patrol around the room and build a 2D map of where the obstacles are — its first piece of spatial memory. · **Builds on:** L11, L2
+
 ## Why
 
 Every mission so far chased a single thing — a point, a person. Real autonomy
@@ -72,6 +74,8 @@ was mapped within 0.5 m of each known pillar.
 # Lesson 14a — 簡單建圖與自主巡邏
 
 🌐 [English](#lesson-14a--simple-mapping--autonomous-patrol) · **繁體中文**（以下）
+
+> **一句話：**讓無人機在房間裡巡邏一圈，邊飛邊畫出障礙物的 2D 地圖——它的第一份空間記憶。 · **建立在：**第 11 課、第 2 課
 
 ## 為什麼
 

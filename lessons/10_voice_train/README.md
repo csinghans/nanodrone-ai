@@ -6,6 +6,8 @@
 
 ---
 
+> **In one line:** Record your own voice and train a small model on it, so the drone understands your exact accent better than the generic model. · **Builds on:** L9
+
 ## Why
 
 Lesson 9's generic speech model struggled with some accents. The fix is the
@@ -84,6 +86,8 @@ With your trained model and a mic, say the commands and watch it obey — tuned 
 # Lesson 10 — 訓練你自己的語音命令
 
 🌐 [English](#lesson-10--train-your-own-voice-commands) · **繁體中文**（以下）
+
+> **一句話：**錄下自己的聲音訓練一個小模型，讓無人機聽得懂你的口音，比通用模型更準。 · **建立在：**第 9 課
 
 ## 為什麼
 

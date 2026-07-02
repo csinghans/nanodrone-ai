@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Train a small model that predicts how the scene will change, so the drone starts dodging before an obstacle gets close. · **Builds on:** L17, L18, L19, L21, L4
+
 ## Why
 
 Every model so far has been *reactive*: the depth net (Lesson 17) and the RL
@@ -270,6 +272,8 @@ model.
 # Lesson 29 — nano 世界模型：隱空間預測做預判式避障
 
 🌐 [English](#lesson-29--nano-world-model-latent-space-prediction-for-proactive-avoidance) · **繁體中文**（以下）
+
+> **一句話：**訓練一個會預測畫面接下來怎麼變的小模型，讓無人機在障礙物逼近之前就提前閃開。 · **建立在：**第 17 課、第 18 課、第 19 課、第 21 課、第 4 課
 
 ## 為什麼
 

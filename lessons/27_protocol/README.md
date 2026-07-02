@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Pull the drone's command language into one shared module so the sim, a phone app and real drones all speak the same JSON. · **Builds on:** —
+
 ## Why
 
 The DroneVoice bridge welded the *protocol* — which actions exist, their
@@ -67,6 +69,8 @@ shared protocol.
 # Lesson 27 — 一套飛行協定，到處重用
 
 🌐 [English](#lesson-27--one-flight-protocol-reused-everywhere) · **繁體中文**（以下）
+
+> **一句話：**把無人機的指令語言抽成一個共用模組，讓模擬器、手機 App 和真機講的是同一套 JSON。 · **建立在：**無（從這裡開始）
 
 ## 為什麼
 

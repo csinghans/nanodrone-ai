@@ -6,6 +6,8 @@
 
 ---
 
+> **In one line:** Give the drone a camera and write code that tells how far away an obstacle is and which way it lies — its first pair of eyes. · **Builds on:** L1
+
 ## Why
 
 A drone that can only follow fixed waypoints (Lesson 1) is blind. Before it can
@@ -79,6 +81,8 @@ around the red obstacle.
 # Lesson 2 — 感知（看見障礙物）
 
 🌐 [English](#lesson-2--perception-seeing-an-obstacle) · **繁體中文**（以下）
+
+> **一句話：**幫無人機裝上攝影機，寫程式算出障礙物有多遠、在哪個方向——這是它的第一雙眼睛。 · **建立在：**第 1 課
 
 ## 為什麼
 

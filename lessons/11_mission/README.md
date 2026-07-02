@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Build a mission brain that walks the drone through take off, go, hover, land — and drops into a safety state when things go wrong. · **Builds on:** L5
+
 ## Why
 
 Every flight script so far (Lessons 5–10, the DroneVoice bridge) copied the same
@@ -78,6 +80,8 @@ ground.
 # Lesson 11 — 任務狀態機（編排 + failsafe）
 
 🌐 [English](#lesson-11--mission-state-machine-orchestration--failsafe) · **繁體中文**（以下）
+
+> **一句話：**打造任務大腦：讓無人機照起飛、前往、懸停、降落一步步走，出狀況就自動進入安全狀態。 · **建立在：**第 5 課
 
 ## 為什麼
 

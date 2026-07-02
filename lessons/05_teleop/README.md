@@ -6,6 +6,8 @@
 
 ---
 
+> **In one line:** Plug in a game controller and fly the simulated drone yourself — stick time that shows how much the AI was doing for you. · **Builds on:** L4
+
 ## Why
 
 Lessons 1–4 made the drone fly *itself*. This bonus hands **you** the sticks.
@@ -84,6 +86,8 @@ python lessons/05_teleop/teleop_xbox.py --input selftest
 # Lesson 5（加成課）— 用 Xbox 手把親手飛
 
 🌐 [English](#lesson-5-bonus--fly-it-yourself-with-an-xbox-controller) · **繁體中文**（以下）
+
+> **一句話：**接上遊戲手把親自開模擬無人機，練出飛行手感，也體會 AI 之前幫你做了多少事。 · **建立在：**第 4 課
 
 ## 為什麼
 

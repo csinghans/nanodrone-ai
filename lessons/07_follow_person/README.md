@@ -6,6 +6,8 @@
 
 ---
 
+> **In one line:** Walk around in the sim while the drone trails you by itself — your driving and tracking pieces combined into a follow-me drone. · **Builds on:** L6
+
 ## Why
 
 This is the "follow-me drone" everyone pictures: **you** walk around and the
@@ -75,6 +77,8 @@ and trail you.
 # Lesson 7 — 跟著飛手
 
 🌐 [English](#lesson-7--follow-the-pilot) · **繁體中文**（以下）
+
+> **一句話：**你在模擬世界裡走動，無人機自己跟在後面——把駕駛和追蹤組合成一台跟拍機。 · **建立在：**第 6 課
 
 ## 為什麼
 

@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Teach the drone to track its own motion from camera frames alone, so it can tell where it has flown without any GPS. · **Builds on:** L1, L3, L8, L4
+
 ## Why
 
 Every flight loop so far read the simulator's **privileged** position
@@ -67,6 +69,8 @@ the loop rather than wandering.
 # Lesson 18 — 光流 / 視覺里程計（無 GPS 自估狀態）
 
 🌐 [English](#lesson-18--optical-flow--visual-odometry-no-gps-state-estimate) · **繁體中文**（以下）
+
+> **一句話：**教無人機只靠前後兩張影像估出自己動了多少，沒有 GPS 也能知道自己飛到哪裡。 · **建立在：**第 1 課、第 3 課、第 8 課、第 4 課
 
 ## 為什麼
 

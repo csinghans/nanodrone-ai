@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Scramble your training images with random lighting and noise so the model stops memorizing pixels and survives a real camera. · **Builds on:** L17, L2
+
 ## Why
 
 Lessons 14b / 17 / 18 kept flagging the same honest gap: a model trained on clean
@@ -62,6 +64,8 @@ appearance-shifted test — domain randomization measurably shrinks the gap.
 # Lesson 20 — 域隨機化（縮小 sim-to-real 落差）
 
 🌐 [English](#lesson-20--domain-randomization-shrink-the-sim-to-real-gap) · **繁體中文**（以下）
+
+> **一句話：**把訓練影像隨機加上光線變化和雜訊，逼模型別死記像素，換到真實相機也不會失靈。 · **建立在：**第 17 課、第 2 課
 
 ## 為什麼
 

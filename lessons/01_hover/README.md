@@ -6,6 +6,8 @@
 
 ---
 
+> **In one line:** Fly a simulated drone for the first time: make it hold a steady hover, then follow a simple path — no hardware, no cost. · **Builds on:** —
+
 ## Why
 
 Before an AI can decide *where* a drone goes, you need to trust that *"go to point X"* actually works. This lesson gives you that foundation: you'll make a simulated Crazyflie hover, then fly a path — with zero hardware and zero cost.
@@ -54,6 +56,8 @@ to confirm the physics runs without graphics, then troubleshoot the GUI.
 # Lesson 1 — 飛行控制基礎（懸停與航點）
 
 🌐 [English](#lesson-1--flight-control-basics-hover--waypoints) · **繁體中文**（以下）
+
+> **一句話：**第一次讓模擬無人機起飛：先穩穩懸停，再沿路線飛一圈——不用任何硬體、零花費。 · **建立在：**無（從這裡開始）
 
 ## 為什麼
 

@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Step back and tally the whole journey — what you built, what the measurements say, and what honestly remains to be done. · **Builds on:** —
+
 ## Why
 
 Thirty lessons ago the goal fit in one sentence: **a 27 g drone that flies
@@ -102,6 +104,8 @@ every later lesson trusted.
 # Lesson 30 — 課程總結:你蓋出了什麼,數字說話
 
 🌐 [English](#lesson-30--course-summary-what-you-built-by-the-numbers) · **繁體中文**（以下）
+
+> **一句話：**回頭盤點整趟旅程：你做出了哪些東西、數據怎麼說，以及還有哪些事老實說沒做完。 · **建立在：**無（從這裡開始）
 
 ## 為什麼
 

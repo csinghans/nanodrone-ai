@@ -4,6 +4,8 @@
 >
 > 新手友善、按部就班：從 $0 純模擬起步，最終做到一台完全離線自飛的 Crazyflie。
 
+🚀 **完全新手？**先讀[**從這裡開始**](docs/zh-TW/START-HERE.md)——一句話目標、15 分鐘完成第一次飛行、以及課程地圖。卡在某個詞？[術語表](docs/zh-TW/GLOSSARY.md)用白話解釋所有名詞。
+
 🌐 **語言：** [English](README.md) · **繁體中文**
 
 [![CI](https://github.com/csinghans/nanodrone-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/csinghans/nanodrone-ai/actions/workflows/ci.yml)

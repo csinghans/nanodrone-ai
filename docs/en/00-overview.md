@@ -32,16 +32,19 @@ GAP8 chip — the same approach as the academic [PULP-Dronet](https://github.com
 
 ## Course map
 
-| Lesson | What you learn |
-|--------|----------------|
-| 0 | Set up Python + simulator on your Mac |
-| 1 | Make the drone hover and follow waypoints |
-| 2 | Detect obstacles from a camera |
-| 3 | Let a neural network fly the drone (avoid obstacles) |
-| 4 | Deploy to real hardware, flying fully offline |
-| 5 *(bonus)* | Fly the sim drone yourself with an Xbox controller |
-| 6 | Follow a moving target by camera (visual servoing) |
-| 7 | Follow a person you drive around (yaw to face them) |
-| 8 | Follow a "real" person with a trained detector (CNN) |
+The course runs from Lesson 1 (your first hover) to Lesson 30 (the summary),
+in five phases:
+
+| Phase | Lessons | In plain words |
+|---|---|---|
+| Fly, see, decide | 1–10 | Hover, camera perception, first learned behaviours, gamepad + voice control |
+| Missions | 11–16 | Whole missions as guarded state machines, ending in a graded capstone |
+| Onto the chip | 14b, 17–22 | Depth, optical flow, RL avoidance — each distilled small enough for the drone's own chip |
+| The frontier | 23–30 | Flight recorder, real-drone stepping stone, one shared protocol, the nano world model, the summary |
+| Side quest | DroneVoice | An iPhone app flying the drone by voice over the same protocol |
+
+The one-page quickstart and reading order live in [Start here](START-HERE.md);
+the full dependency graph and design rationale live in the
+[Roadmap](ROADMAP.md).
 
 Next: [Lesson 1 — Flight control basics](https://github.com/csinghans/nanodrone-ai/blob/main/lessons/01_hover/README.md).

@@ -6,6 +6,8 @@
 
 ---
 
+> **In one line:** Make the drone chase a moving target using one simple rule — a complete see, locate, move loop with no training needed. · **Builds on:** L5
+
 ## Why
 
 Lessons 2 and 3 detected and avoided a *static* obstacle. Following a *moving*
@@ -70,6 +72,8 @@ quad trailing the green sphere as it sweeps side to side.
 # Lesson 6 — 跟隨模式
 
 🌐 [English](#lesson-6--follow-me-tracking) · **繁體中文**（以下）
+
+> **一句話：**用一條簡單規則讓無人機追著會動的目標——完整跑通『看見、定位、移動』，完全不用訓練。 · **建立在：**第 5 課
 
 ## 為什麼
 

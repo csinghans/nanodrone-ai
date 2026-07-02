@@ -4,6 +4,8 @@
 >
 > Beginner-friendly and step-by-step: start in simulation for $0, graduate to a real Crazyflie that flies itself fully offline.
 
+🚀 **Completely new here?** Read [**Start here**](docs/en/START-HERE.md) — the goal in one sentence, your first flight in 15 minutes, and the course map. Stuck on a word? The [Glossary](docs/en/GLOSSARY.md) explains everything in plain language.
+
 🌐 **Languages:** **English** · [繁體中文](README.zh-TW.md)
 
 [![CI](https://github.com/csinghans/nanodrone-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/csinghans/nanodrone-ai/actions/workflows/ci.yml)

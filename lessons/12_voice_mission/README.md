@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Wire your voice into the mission brain so saying 'take off' or 'land' switches the whole flight phase, not just a small nudge. · **Builds on:** L11, L9, L10
+
 ## Why
 
 Lessons 9 and 10 turned speech into a *continuous nudge* — "forward" meant
@@ -72,6 +74,8 @@ It asserts three phase transitions fired, the run ended in `Land` on the ground,
 # Lesson 12 — 語音驅動的任務轉移
 
 🌐 [English](#lesson-12--voice-driven-mission-transitions) · **繁體中文**（以下）
+
+> **一句話：**把語音接上任務大腦：說一聲『起飛』『降落』就切換整個飛行階段，而不只是輕推一下。 · **建立在：**第 11 課、第 9 課、第 10 課
 
 ## 為什麼
 

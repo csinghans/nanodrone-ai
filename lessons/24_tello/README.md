@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Fly a real drone at last: a ~US$100 Tello obeys the same commands as the sim, with real safety rules wrapped around it. · **Builds on:** L23, L11
+
 ## Why
 
 The GAP8 / AI-deck path (Lesson 4, ~US$545, soldering + flashing, offline) is a
@@ -62,6 +64,8 @@ low battery, lost link, and out-of-bounds — without any hardware, so it runs i
 # Lesson 24 — 你的第一台真機：平價 Tello（Wi-Fi）
 
 🌐 [English](#lesson-24--your-first-real-drone-a-cheap-tello-over-wi-fi) · **繁體中文**（以下）
+
+> **一句話：**終於飛真的無人機：一台約一百美元的 Tello 聽懂模擬器同一套指令，還加上真正的安全防護。 · **建立在：**第 23 課、第 11 課
 
 ## 為什麼
 

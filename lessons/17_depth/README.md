@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Train a model that guesses distance from a single flat image — a depth value for every pixel, with no depth sensor needed. · **Builds on:** L2, L3, L4
+
 ## Why
 
 Until now depth was only ever read at a single point — range to one target
@@ -68,6 +70,8 @@ you can *see* what it learned.
 # Lesson 17 — 單目深度估計（訓練一個 dense 模型）
 
 🌐 [English](#lesson-17--monocular-depth-estimation-train-a-dense-model) · **繁體中文**（以下）
+
+> **一句話：**訓練一個模型從一張平面影像猜出遠近：每個像素都有距離值，完全不需要深度感測器。 · **建立在：**第 2 課、第 3 課、第 4 課
 
 ## 為什麼
 

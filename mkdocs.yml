@@ -31,7 +31,9 @@ plugins:
 # Paths are relative to each language folder (docs/en, docs/zh-TW).
 nav:
   - Home: index.md
+  - "Start here": START-HERE.md
   - Overview: 00-overview.md
+  - Glossary: GLOSSARY.md
   - "Lesson 1 — Flight control": 01-hover.md
   - "Lesson 2 — Perception": 02-perception.md
   - "Lesson 3 — Autonomy AI": 03-autonomy-ai.md

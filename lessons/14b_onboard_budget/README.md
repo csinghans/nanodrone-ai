@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Test whether your models still fit and keep up on the drone's tiny chip, and get honest numbers for size, accuracy and timing. · **Builds on:** L14a, L4, L13
+
 ## Why
 
 Lessons 11–14a were all host-side, sim-only orchestration — they quietly drifted
@@ -76,6 +78,8 @@ can't just be 1 on real hardware.
 # Lesson 14b — 板載預算下的感知（把能力縫回 GAP8）
 
 🌐 [English](#lesson-14b--perception-under-the-on-board-budget-sew-it-back-to-gap8) · **繁體中文**（以下）
+
+> **一句話：**檢驗你的模型塞不塞得進機上小晶片、跟不跟得上飛行節奏，拿到大小、準確率和速度的真實數字。 · **建立在：**第 14a 課、第 4 課、第 13 課
 
 ## 為什麼
 

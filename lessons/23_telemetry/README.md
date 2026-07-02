@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Build a flight black box that records every moment of a flight to a log you can replay, so you can see what went wrong later. · **Builds on:** L1
+
 ## Why
 
 Real-hardware bring-up's first need isn't smarter AI — it's being able to **see
@@ -57,6 +59,8 @@ the recorder is faithful.
 # Lesson 23 — 飛行黑盒子：遙測與回放
 
 🌐 [English](#lesson-23--flight-black-box-telemetry--replay) · **繁體中文**（以下）
+
+> **一句話：**幫無人機做一個飛行黑盒子：整趟飛行記錄成日誌，事後可以重播，看清楚哪裡出了問題。 · **建立在：**第 1 課
 
 ## 為什麼
 

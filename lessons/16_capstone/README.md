@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Design your own mission from every block you've built, fly it in sim, and grade it against a rubric — your graduation project. · **Builds on:** L11, L12, L13, L14a, L14b
+
 ## Why
 
 Every lesson so far handed you the task. The capstone flips it: **you** design a
@@ -65,6 +67,8 @@ before you grade the scored dimensions.
 # Lesson 16 — 畢業專題：設計你自己的任務
 
 🌐 [English](#lesson-16--graduation-project-design-your-own-mission) · **繁體中文**（以下）
+
+> **一句話：**用你蓋好的所有積木自己設計一趟任務，在模擬裡飛完並照評分表打分——這是你的畢業專題。 · **建立在：**第 11 課、第 12 課、第 13 課、第 14a 課、第 14b 課
 
 ## 為什麼
 

@@ -8,6 +8,8 @@
 
 ---
 
+> **In one line:** Race different command parsers on one shared test set and get numbers for when a general model beats your self-trained one. · **Builds on:** L27, L12, L10
+
 ## Why
 
 The course's drumbeat is *"a general model isn't good enough → train your own
@@ -75,6 +77,8 @@ this task wants a general model, not a trained-from-scratch one.
 
 > 本課程式放在 `bridge/`（它延伸 DroneVoice 橋接）：`parse_text.py`、`eval_parsers.py`、
 > `send_text.py`、`golden_intents.jsonl`。
+
+> **一句話：**讓不同的指令解析器在同一份考題上比賽，用數字看清什麼時候通用模型贏過你自訓的小模型。 · **建立在：**第 27 課、第 12 課、第 10 課
 
 ## 為什麼
 

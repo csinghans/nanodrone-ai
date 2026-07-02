@@ -34,6 +34,16 @@ Keep the five-part shape so the course stays predictable for beginners:
 4. **Checkpoint** — a concrete, observable success condition.
 5. **Going further** — optional links and challenges.
 
+Above **Why** (in both language halves), every lesson opens with a one-line
+beginner box, so readers can always tell what a lesson does and what it
+builds on before committing to it:
+
+```markdown
+> **In one line:** <what you'll do and have at the end> · **Builds on:** L<X>, L<Y>
+```
+
+(zh-TW half: `> **一句話：**… · **建立在：**第 X 課`.)
+
 ## Adding a lesson
 
 Scaffold first, then fill it in — this keeps every lesson consistent and CI green:

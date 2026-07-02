@@ -6,6 +6,8 @@
 
 ---
 
+> **In one line:** Train the drone to dodge an obstacle by trial and error — your first self-trained AI that decides where to fly on its own. · **Builds on:** L2
+
 ## Why
 
 Lesson 1 made the drone *move*; Lesson 2 made it *see*. Lesson 3 closes the loop:
@@ -102,6 +104,8 @@ degrees. The network learned to "see" the obstacle direction from pixels alone.
 # Lesson 3 — 自主決策 AI
 
 🌐 [English](#lesson-3--autonomous-decision-ai) · **繁體中文**（以下）
+
+> **一句話：**讓無人機靠不斷嘗試自己學會閃過障礙物——你親手訓練出的第一個會做決定的 AI。 · **建立在：**第 2 課
 
 ## 為什麼
 

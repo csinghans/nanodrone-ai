@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Measure exactly how much accuracy your sim-trained model loses on realistic camera images, turning a hand-wave into a number. · **Builds on:** L8, L18, L24
+
 ## Why
 
 Every model in the course (L3/L8/L13/L17) was trained and scored in clean sim.
@@ -60,6 +62,8 @@ measurably hurt it — a non-zero, quantified sim-to-real gap.
 # Lesson 25 — 誠實量測 sim-to-real 落差
 
 🌐 [English](#lesson-25--measure-the-sim-to-real-gap-honestly) · **繁體中文**（以下）
+
+> **一句話：**量出模擬練出的模型在仿真實相機畫面上掉多少準確度——把『應該會變差』變成確切數字。 · **建立在：**第 8 課、第 18 課、第 24 課
 
 ## 為什麼
 

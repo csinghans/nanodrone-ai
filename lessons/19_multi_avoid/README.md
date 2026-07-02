@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Train the drone to dodge several obstacles that move to new spots every round, by seeing them instead of memorizing one route. · **Builds on:** L3, L17
+
 ## Why
 
 Lesson 3's RL flew around **one** pillar in a **fixed** spot — so the drone's own
@@ -64,6 +66,8 @@ smoke run — train for ~300k to get a policy that actually clears random layout
 # Lesson 19 — 更難的多障礙 RL（把感知併入觀測）
 
 🌐 [English](#lesson-19--harder-multi-obstacle-rl-perception-in-the-observation) · **繁體中文**（以下）
+
+> **一句話：**訓練無人機閃過每回合都換位置的多個障礙物——靠看見障礙來反應，而不是死背一條路。 · **建立在：**第 3 課、第 17 課
 
 ## 為什麼
 

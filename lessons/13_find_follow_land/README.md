@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Combine voice, vision and the mission brain into one flight: the drone finds a person, follows them, and lands when you say so. · **Builds on:** L11, L12, L8
+
 ## Why
 
 This is the first time the whole course collapses into one sentence you can say
@@ -92,6 +94,8 @@ person within ~18° mean bearing error, never tripped Failsafe, and landed on a
 # Lesson 13 — 多模態 mini-capstone：找人 → 跟隨 → 降落
 
 🌐 [English](#lesson-13--multimodal-mini-capstone-find--follow--land) · **繁體中文**（以下）
+
+> **一句話：**把語音、視覺和任務大腦合成一趟飛行：無人機自己找到人、跟著走，你一聲令下就降落。 · **建立在：**第 11 課、第 12 課、第 8 課
 
 ## 為什麼
 

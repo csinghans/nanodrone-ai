@@ -4,6 +4,8 @@
 
 ---
 
+> **In one line:** Merge your separate skills — avoiding and following — into one small network the chip can hold: a single brain flying the drone. · **Builds on:** L8, L19, L21, L4
+
 ## Why
 
 Avoidance (Lesson 19) and following (Lesson 8) are separate networks and loops.
@@ -67,6 +69,8 @@ fits GAP8 — a single, tiny, deployable brain.
 # Lesson 22 — 把多個能力蒸餾成單一板載策略（Track B 畢業專題）
 
 🌐 [English](#lesson-22--distill-multiple-skills-into-one-on-board-policy-track-b-capstone) · **繁體中文**（以下）
+
+> **一句話：**把閃避和跟隨這些分開練的本事，蒸餾成一顆晶片放得下的單一小網路——一顆大腦包辦飛行。 · **建立在：**第 8 課、第 19 課、第 21 課、第 4 課
 
 ## 為什麼
 

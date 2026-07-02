@@ -13,6 +13,8 @@ hardware. Above: `quantize_cnn.py` confirms the int8 model fits the GAP8.)*
 
 ---
 
+> **In one line:** Shrink your trained network until it fits the tiny chip on a real 27 g drone, so the AI can run on board with no computer. · **Builds on:** L3
+
 ## Why
 
 Everything so far ran on your Mac. Real autonomy means the neural network runs
@@ -115,6 +117,8 @@ the GAP8's memory. `dronet_cnn.onnx` is the file you hand to the GAP8 toolchain.
 🌐 [English](#lesson-4--real-hardware--on-board-offline-ai) · **繁體中文**（以下）
 
 > 這是終點線：把你在模擬器裡做出的自主能力，跑在**真實奈米無人機上、完全離線** —— 不靠筆電、不靠 Wi-Fi。這一課有一部分**現在就能免費做**；其餘需要硬體（約 US$545）。
+
+> **一句話：**把訓練好的神經網路瘦身到塞得進真實 27 克無人機的小晶片，讓 AI 直接在機上運作。 · **建立在：**第 3 課
 
 ## 為什麼
 
