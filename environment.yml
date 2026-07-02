@@ -33,4 +33,5 @@ dependencies:
   - pybullet           # prebuilt; no local compilation
   - gymnasium
   - stable-baselines3
+  - sb3-contrib  # RecurrentPPO for Lesson 29 step 6
   - opencv             # provides cv2

@@ -85,14 +85,32 @@ def dataset_auc(data, enc, pred, cheads, device="cpu", shifted=False) -> float:
 
 
 def closed_loop(n_seeds, seed0, enc, pred, cheads, nhead, meta, randomize) -> dict:
+    from learn_policy import LearnedPolicy, _load_policy, zip_path
+
+    mk = {
+        "reactive": lambda: ReactivePolicy(enc, nhead),
+        "wm": lambda: WMPolicy(enc, pred, cheads, meta),
+    }
+    # step-6 policies join when trained: the clean-trained one shows what the
+    # storm costs it; the storm-trained (_rand) ones show what training inside
+    # the storm buys back
+    for name, rec, rnd in (
+        ("learned", False, False),
+        ("learned-rand", False, True),
+        ("learned-rnn-rand", True, True),
+    ):
+        path = zip_path(rec, rnd)
+        if os.path.exists(path):
+            model = _load_policy(path)
+            mk[name] = lambda m=model: LearnedPolicy(m, enc, pred, cheads, meta)
+
     env = make_env()
-    out = {"reactive": {"crash": 0, "clear": []}, "wm": {"crash": 0, "clear": []}}
+    out = {name: {"crash": 0, "clear": []} for name in mk}
     for i in range(n_seeds):
-        for name, policy in (
-            ("reactive", ReactivePolicy(enc, nhead)),
-            ("wm", WMPolicy(enc, pred, cheads, meta)),
-        ):
-            run = run_episode(env, policy, seed0 + i, in_path=True, randomize=randomize)
+        for name, factory in mk.items():
+            run = run_episode(
+                env, factory(), seed0 + i, in_path=True, randomize=randomize
+            )
             out[name]["crash"] += int(run["crashed"])
             out[name]["clear"].append(run["min_clear"])
     env.close()
@@ -121,16 +139,17 @@ def main() -> None:
 
     print(f"[INFO] closed loop under randomization ({n_seeds} threatened courses)")
     loop = closed_loop(n_seeds, args.seed0, enc, pred, cheads, nhead, meta, True)
-    re, wm = loop["reactive"], loop["wm"]
 
     print(
         f"ROBUST-WM OK: clean AUC@32={auc_clean:.2f} | randomized(+unseen-shift) "
         f"AUC@32={auc_rand:.2f} (the gap to buy back), "
         f"veer-ranking={veer_rand:.2f} (n={n_veer})\n"
-        f"  closed loop under randomization: crash reactive {re['crash_rate']:.0%} "
-        f"-> wm {wm['crash_rate']:.0%}, mean clearance {re['mean_clear']:.2f} -> "
-        f"{wm['mean_clear']:.2f} m — latency + actuation noise + unseen appearance, "
-        f"danger signal still camera-only"
+        f"  closed loop under randomization — crash "
+        + " / ".join(f"{k} {v['crash_rate']:.0%}" for k, v in loop.items())
+        + " (clearance "
+        + " / ".join(f"{v['mean_clear']:.2f}" for v in loop.values())
+        + " m) — latency + actuation noise + unseen appearance, danger signal "
+        "still camera-only"
     )
     if os.path.exists(ROBUST_MODEL):
         enc2, pred2, cheads2, nhead2, meta2 = load_model(ROBUST_MODEL)

@@ -155,7 +155,10 @@ Step 6 acts on the planner verdict: instead of tuning the cost function, PPO
 about danger) learns the policy from the world model's own outputs, with the
 last second of them stacked as memory — so a pillar that slides out of the 60°
 FOV stays in the observation. Same encoder, same heads, same harnesses; only
-the decision-maker is learned.
+the decision-maker is learned. Two memory flavours ship (`--recurrent` swaps
+the stack for sb3-contrib's LSTM — the lesson's one optional dependency), and
+`--randomize` trains inside step 5's storm; every trained variant joins the
+scoreboards automatically.
 
 Each script self-generates what it needs and runs on its own with `--selftest`.
 
@@ -200,19 +203,24 @@ ONBOARD-BUDGET OK: weights=81.3 KB + peak_activation=28.0 KB + workspace(dbl-buf
 ```
 
 Step 4c is the mechanism, measured — 30 single-pillar courses per cruise
-speed, same seeds at every speed:
+speed, same seeds at every speed, every available policy (crash rates):
 
-| cruise | reactive crash | wm crash | mean clearance |
-|---|---|---|---|
-| 0.8 m/s | 0 % | 10 % | 0.43 → 0.45 m |
-| 1.0 m/s | 0 % | **0 %** | 0.45 → 0.51 m |
-| 1.2 m/s | 3 % | **0 %** | 0.38 → **0.62 m** |
-| 1.4 m/s | **40 %** | **0 %** | 0.27 → **0.59 m** |
-| 1.6 m/s | **60 %** | **10 %** | 0.20 → **0.55 m** |
+| cruise | reactive | wm (hand MPC) | **learned (stacked)** | learned (LSTM) |
+|---|---|---|---|---|
+| 0.8 m/s | 0 % | 10 % | **0 %** | 37 % |
+| 1.0 m/s | 0 % | 0 % | **0 %** | 23 % |
+| 1.2 m/s | 3 % | 0 % | **0 %** | 3 % |
+| 1.4 m/s | **40 %** | 0 % | **0 %** | 10 % |
+| 1.6 m/s | **60 %** | 10 % | **0 %** | 10 % |
 
 ```
-SPEED-SWEEP OK: 30 single-pillar courses/speed — at 0.8 m/s crash reactive/wm = 0%/10%; at 1.6 m/s crash reactive/wm = 60%/10% — reaction pays a distance, anticipation pays time
+SPEED-SWEEP OK: 30 single-pillar courses/speed — crash (reactive/wm/learned/learned-rnn) at 0.8 m/s = 0%/10%/0%/37%; at 1.6 m/s = 60%/10%/0%/10% — reaction pays a distance, anticipation pays time
 ```
+
+The learned stacked-memory policy flies the *entire* speed band without a
+single crash — 150 courses, zero. (The LSTM variant is the honest footnote:
+at the same 300k-step budget it has not converged, and no amount of memory
+elegance rescues an undertrained policy.)
 
 Read the two scoreboards together, like a robot person would. **Step 4c is the
 mechanism**: the reactive trigger fires at a fixed *distance*, so raising the
@@ -224,7 +232,7 @@ pays a 16 % crash tail there that the privileged-direction baseline does not —
 while keeping zero false evasions and a +2 % time cost. The model is no longer
 the bottleneck (veer-ranking 1.00); the hand-crafted cost function is — eight
 planner configurations were measured to establish that, and step 6 acts on it:
-the *learned* policy closes the tail to 5 %.
+the *learned* policy erases the tail entirely (0 %).
 
 Step 5 prices the sim-to-real trap before hardware pays it: the shipped
 (clean-trained) model, measured on conditions it never saw — randomized pillar
@@ -235,7 +243,7 @@ the variation:
 
 ```
 ROBUST-WM OK: clean AUC@32=0.96 | randomized(+unseen-shift) AUC@32=0.82 (the gap to buy back), veer-ranking=1.00 (n=8)
-  closed loop under randomization: crash reactive 10% -> wm 17%, mean clearance 0.35 -> 0.37 m — latency + actuation noise + unseen appearance, danger signal still camera-only
+  closed loop under randomization — crash reactive 10% / wm 17% / learned 10% / learned-rand 13% / learned-rnn-rand 50% (clearance 0.35 / 0.37 / 0.35 / 0.32 / 0.25 m) — latency + actuation noise + unseen appearance, danger signal still camera-only
   --randomize + --robust retrain: randomized AUC@32=0.92, closed loop crash reactive 10% -> wm 30%, clearance 0.35 -> 0.33 m — train across the variation, not beside it
 ```
 
@@ -249,32 +257,41 @@ score is not a better flight** — the cost function is the bottleneck, so learn
 it (step 6), and let Track E measure on hardware what randomization cannot
 model.
 
+The learned policies complete the picture. The clean-trained stacked policy
+flies the storm at **10 %** — the privileged-direction baseline's level,
+reached from vision alone without ever training there — and storm-training it
+buys nothing more (13 %, within noise at 30 seeds). The *policy* is already
+robust; what remains of the storm lives in *perception*, which is exactly
+what `--robust` buys back.
+
 Step 6 does exactly that — Lesson 19's PPO over the world model's outputs,
 with one second of stacked memory, and no hand-tuned danger weights anywhere
-(measured after 300k steps, ~16 minutes of training):
+(measured after 300k steps, ~16 minutes of training; the LSTM and
+storm-trained variants join the same table):
 
 ```
-LEARNED-POLICY OK: 60 cluttered courses @ 0.8 m/s — crash reactive 2% / wm-mpc 17% / learned 5% (clearance 0.41 / 0.40 / 0.36 m)
-  single-pillar @ 1.6 m/s — crash reactive 70% / wm-mpc 8% / learned 0% — the cost function is learned, the world model is the same
+LEARNED-POLICY OK: 60 cluttered courses @ 0.8 m/s — crash reactive 2% / wm-mpc 17% / learned 0% / learned-rnn 15% / learned-rnn-rand 37% (clearance 0.41 / 0.40 / 0.32 / 0.29 / 0.28 m)
+  single-pillar @ 1.6 m/s — crash reactive 70% / wm-mpc 8% / learned 0% / learned-rnn 28% / learned-rnn-rand 45% — the cost function is learned, the world model is the same
 ```
 
-The learned policy closes the hand planner's cluttered-course tail
-(**17 % → 5 %**, approaching the privileged-direction baseline's 2 % from
-vision alone) and dominates at speed (**0 %** where reaction crashes 70 %) —
-with the *same* world model underneath. Eight hand-tuned configurations
-couldn't do both at once; sixteen minutes of learning did. That is the
-lesson's closing argument.
+The learned stacked-memory policy erases the hand planner's cluttered-course
+tail outright (**17 % → 0 %**, beating even the privileged-direction baseline's
+2 % from vision alone) and stays at **0 %** at speed where reaction crashes
+70 % — with the *same* world model underneath. Eight hand-tuned
+configurations couldn't do any of this at once; sixteen minutes of learning
+did all of it. That is the lesson's closing argument.
 
 ## Going further
 
-- **A recurrent policy.** Step 6's memory is the simplest honest kind — the
-  last second of observations, stacked. A tiny GRU (via `sb3-contrib`'s
-  RecurrentPPO, a new dependency) would carry *longer* memory at lower cost,
-  and could live model-side over `z_t` instead of policy-side.
-- **Train the learned policy across the whole speed band and under
-  randomization.** Step 6 already randomizes cruise speed per episode; fold in
-  step 5's `randomize=True` conditions and re-run the 4c sweep with the
-  learned policy at every speed.
+- **Give the recurrent variant a fair budget.** `--recurrent` ships and
+  trains (sb3-contrib's RecurrentPPO), but at the same 300k steps it has not
+  converged — 3–37 % across the sweep against the stack's flat 0 %. More
+  steps, tuned sequence lengths, or a model-side GRU over `z_t` are the
+  follow-ups. The honest finding so far: **at equal budget, the simple stack
+  wins** — elegance is not free.
+- **Longer memory, harder worlds.** The stacked second of memory suffices for
+  this corridor; denser clutter and moving obstacles will need more — that is
+  where the recurrent line (or yaw-aligned flight) earns its keep.
 - **Metric-ground the latent (research-grade).** Use **4D-GS offline** to
   produce geometry-consistent occupancy and add a geometry-grounded
   latent-prediction loss, so `ẑ_{t+k}` decodes to a collision-checkable
@@ -406,7 +423,9 @@ Step 3（`proactive_avoid.py`）用 privileged 幾何隔離出決策*時機*—�
 Step 6 對 planner 的裁決採取行動：不再調 cost 函數，改用 PPO（完全是 Lesson 19 的配方——
 前進獎勵、墜機懲罰，危險項沒有任何手工塑形）從世界模型自己的輸出學出策略，並把最近一秒的
 輸出堆疊成記憶——滑出 60° FOV 的柱子會在觀測裡多留一秒。同一顆 encoder、同一組 heads、
-同一套測試工具；只有「做決定的東西」是學出來的。
+同一套測試工具；只有「做決定的東西」是學出來的。記憶有兩種口味（`--recurrent` 把堆疊換成
+sb3-contrib 的 LSTM——全課唯一的可選新依賴），`--randomize` 則直接在 step 5 的風暴裡訓練；
+每個訓練出的變體都會自動加入記分板。
 
 每支腳本都自產所需資料，可用 `--selftest` 獨立執行。
 
@@ -447,19 +466,24 @@ WORLD-POLICY OK: seeds=100 (70 in-path / 30 clear)
 ONBOARD-BUDGET OK: weights=81.3 KB + peak_activation=28.0 KB + workspace(dbl-buf)=28.0 KB = 137.3 KB < 512 KB
 ```
 
-Step 4c 是機制本身的量測——每個巡航速度 30 條單柱航道、跨速度同一組 seeds：
+Step 4c 是機制本身的量測——每個巡航速度 30 條單柱航道、跨速度同一組 seeds、
+所有可用策略同場（墜機率）：
 
-| 巡航 | reactive 墜機 | wm 墜機 | 平均淨空 |
-|---|---|---|---|
-| 0.8 m/s | 0 % | 10 % | 0.43 → 0.45 m |
-| 1.0 m/s | 0 % | **0 %** | 0.45 → 0.51 m |
-| 1.2 m/s | 3 % | **0 %** | 0.38 → **0.62 m** |
-| 1.4 m/s | **40 %** | **0 %** | 0.27 → **0.59 m** |
-| 1.6 m/s | **60 %** | **10 %** | 0.20 → **0.55 m** |
+| 巡航 | reactive | wm（手工 MPC） | **learned（堆疊記憶）** | learned（LSTM） |
+|---|---|---|---|---|
+| 0.8 m/s | 0 % | 10 % | **0 %** | 37 % |
+| 1.0 m/s | 0 % | 0 % | **0 %** | 23 % |
+| 1.2 m/s | 3 % | 0 % | **0 %** | 3 % |
+| 1.4 m/s | **40 %** | 0 % | **0 %** | 10 % |
+| 1.6 m/s | **60 %** | 10 % | **0 %** | 10 % |
 
 ```
-SPEED-SWEEP OK: 30 single-pillar courses/speed — at 0.8 m/s crash reactive/wm = 0%/10%; at 1.6 m/s crash reactive/wm = 60%/10% — reaction pays a distance, anticipation pays time
+SPEED-SWEEP OK: 30 single-pillar courses/speed — crash (reactive/wm/learned/learned-rnn) at 0.8 m/s = 0%/10%/0%/37%; at 1.6 m/s = 60%/10%/0%/10% — reaction pays a distance, anticipation pays time
 ```
+
+學出來的堆疊記憶策略把*整條*速度帶飛完、一次都沒撞——150 條航道，零墜機。
+（LSTM 版是誠實的註腳：同樣 300k 步的預算下它還沒收斂，而再優雅的記憶
+也救不了訓練不足的策略。）
 
 把兩張記分板放在一起、用機器人工程師的方式讀。**Step 4c 是機制**：反應式在固定*距離*觸發，
 速度一拉高就把預算花光——墜機率 0% 飆到 60%；會預判的 MPC 在固定*時間*觸發，全程壓在
@@ -467,7 +491,7 @@ SPEED-SWEEP OK: 30 single-pillar courses/speed — at 0.8 m/s crash reactive/wm 
 在前向相機 FOV 之外，無記憶的 planner 在那裡付出 16% 的墜機尾巴（拿了 privileged 方向的基線
 不用付）——但誤閃避保持零、時間成本 +2%。模型已經不是瓶頸（veer-ranking 1.00）；手寫 cost
 函數才是——這是量測了八種 planner 配置後確立的結論，而 step 6 對它採取了行動：
-*學出來的*策略把尾巴關到 5%。
+*學出來的*策略把尾巴整個抹掉（0%）。
 
 Step 5 在硬體付錢之前先為 sim-to-real 陷阱標價：拿 shipped（clean 訓練）模型，在它沒見過的
 條件下量測——隨機柱形／顏色、0–2 步指令延遲、±8% 致動噪音、加上 Lesson 20 的固定「陌生相機」
@@ -476,7 +500,7 @@ Step 5 在硬體付錢之前先為 sim-to-real 陷阱標價：拿 shipped（clea
 
 ```
 ROBUST-WM OK: clean AUC@32=0.96 | randomized(+unseen-shift) AUC@32=0.82 (the gap to buy back), veer-ranking=1.00 (n=8)
-  closed loop under randomization: crash reactive 10% -> wm 17%, mean clearance 0.35 -> 0.37 m — latency + actuation noise + unseen appearance, danger signal still camera-only
+  closed loop under randomization — crash reactive 10% / wm 17% / learned 10% / learned-rand 13% / learned-rnn-rand 50% (clearance 0.35 / 0.37 / 0.35 / 0.32 / 0.25 m) — latency + actuation noise + unseen appearance, danger signal still camera-only
   --randomize + --robust retrain: randomized AUC@32=0.92, closed loop crash reactive 10% -> wm 30%, clearance 0.35 -> 0.33 m — train across the variation, not beside it
 ```
 
@@ -486,25 +510,31 @@ ROBUST-WM OK: clean AUC@32=0.96 | randomized(+unseen-shift) AUC@32=0.82 (the gap
 移走了。同一句副歌、高一個八度：**分數更好不等於飛得更好**——瓶頸是 cost 函數，把它學出來
 （step 6），再讓 Track E 在真機上量測隨機化模擬不了的部分。
 
+學出來的策略把這張圖補完整。clean 訓練的堆疊記憶策略在風暴裡飛出 **10%**——追平拿
+privileged 方向的基線，而且純靠視覺、從未在風暴中訓練過——在風暴裡訓練它也沒有買到更多
+（13%，30 seeds 下屬噪音範圍）。*策略*本身已經健壯；風暴剩下的部分在*感知*層——
+而那正是 `--robust` 買回來的東西。
+
 Step 6 正是這麼做的——Lesson 19 的 PPO 讀世界模型的輸出、帶一秒的堆疊記憶、任何地方都沒有
-手調的危險權重（300k 步、約 16 分鐘訓練後實測）：
+手調的危險權重（300k 步、約 16 分鐘訓練後實測；LSTM 與 storm 訓練變體同表較勁）：
 
 ```
-LEARNED-POLICY OK: 60 cluttered courses @ 0.8 m/s — crash reactive 2% / wm-mpc 17% / learned 5% (clearance 0.41 / 0.40 / 0.36 m)
-  single-pillar @ 1.6 m/s — crash reactive 70% / wm-mpc 8% / learned 0% — the cost function is learned, the world model is the same
+LEARNED-POLICY OK: 60 cluttered courses @ 0.8 m/s — crash reactive 2% / wm-mpc 17% / learned 0% / learned-rnn 15% / learned-rnn-rand 37% (clearance 0.41 / 0.40 / 0.32 / 0.29 / 0.28 m)
+  single-pillar @ 1.6 m/s — crash reactive 70% / wm-mpc 8% / learned 0% / learned-rnn 28% / learned-rnn-rand 45% — the cost function is learned, the world model is the same
 ```
 
-學出來的策略把手工 planner 的雜訊尾巴關掉（**17% → 5%**，純視覺就逼近拿 privileged 方向
-的基線的 2%），高速下更是完勝（反應式墜 70% 的地方它 **0%**）——底下是*同一個*世界模型。
-八種手調配置做不到兩者兼得；十六分鐘的學習做到了。這就是本課的結辯。
+學出來的堆疊記憶策略把手工 planner 的雜訊尾巴**整個抹掉**（**17% → 0%**，純視覺甚至贏過
+拿 privileged 方向的基線的 2%），高速下同樣 **0%**（反應式墜 70%）——底下是*同一個*
+世界模型。八種手調配置一項都做不到；十六分鐘的學習全做到了。這就是本課的結辯。
 
 ## 延伸
 
-- **Recurrent 策略。**Step 6 的記憶是最簡單誠實的那種——把最近一秒的觀測堆疊起來。
-  換成 tiny GRU（`sb3-contrib` 的 RecurrentPPO，需新增依賴）能用更低的成本帶*更長*的記憶，
-  也可以改放在模型側、直接架在 `z_t` 之上。
-- **讓學出來的策略吃滿整條速度帶與隨機化。**Step 6 已經每回合隨機抽巡航速度；把 step 5 的
-  `randomize=True` 條件疊進訓練，再用學出來的策略重跑 4c 的全速度掃描。
+- **給 recurrent 變體公平的預算。**`--recurrent`（sb3-contrib 的 RecurrentPPO）已出貨也能訓，
+  但同樣 300k 步下它還沒收斂——掃描帶上 3–37%，對比堆疊版的全程 0%。後續是更多步數、
+  調 sequence 長度、或改在模型側 `z_t` 上架 GRU。目前誠實的發現：**同預算下，簡單的堆疊贏**
+  ——優雅不是免費的。
+- **更長的記憶、更難的世界。**這條走廊一秒的堆疊記憶就夠；更密的雜訊與會動的障礙物才是
+  recurrent 路線（或 yaw 對齊飛行）真正掙飯吃的地方。
 - **把隱空間度量接地（研究級）。**用 **4D-GS 離線**產生幾何一致的 occupancy，加一個
   geometry-grounded latent-prediction loss，讓 `ẑ_{t+k}` 能解碼成可做碰撞檢測的距離——
   V-JEPA 的延遲換到 4D-GS 的接地。

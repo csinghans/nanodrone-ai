@@ -57,43 +57,68 @@ BASE_V = 0.8  # forward command at speed factor 1.0 (m/s)
 OUT = os.path.join(HERE, "output", "speed_sweep.png")
 
 
+def _policies(enc, pred, cheads, nhead, meta):
+    """Reactive + hand MPC always; learned variants join automatically when a
+    trained .zip exists (step 6). Each factory takes the cruise-speed factor."""
+    mk = {
+        "reactive": lambda s: ReactivePolicy(enc, nhead),
+        "wm": lambda s: WMPolicy(enc, pred, cheads, meta, speed=s),
+    }
+    from learn_policy import LearnedPolicy, _load_policy, zip_path
+
+    for name, rec in (("learned", False), ("learned-rnn", True)):
+        path = zip_path(recurrent=rec)
+        if os.path.exists(path):
+            model = _load_policy(path)
+            mk[name] = lambda s, m=model: LearnedPolicy(
+                m, enc, pred, cheads, meta, speed=s
+            )
+    return mk
+
+
 def sweep(speeds, n_seeds: int, seed0: int) -> list:
-    """Fly `n_seeds` single-pillar courses per speed with both policies. The
-    same seeds repeat across speeds, so each speed step changes exactly one
-    thing — and `solo` courses put the one threat where both policies can see
-    it, so the sweep measures the anticipation mechanism, not the FOV limit."""
+    """Fly `n_seeds` single-pillar courses per speed with every available
+    policy. The same seeds repeat across speeds, so each speed step changes
+    exactly one thing — and `solo` courses put the one threat where every
+    policy can see it, so the sweep measures the anticipation mechanism, not
+    the FOV limit."""
     enc, pred, cheads, nhead, meta = load_or_train(device="cpu")
+    mk = _policies(enc, pred, cheads, nhead, meta)
     env = make_env()
     rows = []
     for s in speeds:
-        crashes = {"reactive": 0, "wm": 0}
-        clears = {"reactive": [], "wm": []}
-        for i in range(n_seeds):
-            for name, policy in (
-                ("reactive", ReactivePolicy(enc, nhead)),
-                ("wm", WMPolicy(enc, pred, cheads, meta, speed=s)),
-            ):
+        row = {"speed": s, "v": s * BASE_V}
+        report = []
+        for name, factory in mk.items():
+            crash, clear = 0, []
+            for i in range(n_seeds):
                 run = run_episode(
-                    env, policy, seed0 + i, in_path=True, speed=s, solo=True
+                    env, factory(s), seed0 + i, in_path=True, speed=s, solo=True
                 )
-                crashes[name] += int(run["crashed"])
-                clears[name].append(run["min_clear"])
-        row = {
-            "speed": s,
-            "v": s * BASE_V,
-            "crash_reactive": crashes["reactive"] / n_seeds,
-            "crash_wm": crashes["wm"] / n_seeds,
-            "clear_reactive": float(np.mean(clears["reactive"])),
-            "clear_wm": float(np.mean(clears["wm"])),
-        }
+                crash += int(run["crashed"])
+                clear.append(run["min_clear"])
+            row[f"crash_{name}"] = crash / n_seeds
+            row[f"clear_{name}"] = float(np.mean(clear))
+            report.append(f"{name} {row[f'crash_{name}']:.0%}")
         rows.append(row)
-        print(
-            f"  v={row['v']:.1f} m/s: crash reactive {row['crash_reactive']:.0%} "
-            f"vs wm {row['crash_wm']:.0%}, mean clearance "
-            f"{row['clear_reactive']:.2f} -> {row['clear_wm']:.2f} m"
-        )
+        print(f"  v={row['v']:.1f} m/s: crash " + " / ".join(report))
     env.close()
+    rows[0]["_names"] = list(mk)
     return rows
+
+
+COLORS = {
+    "reactive": "tab:orange",
+    "wm": "tab:green",
+    "learned": "tab:blue",
+    "learned-rnn": "tab:purple",
+}
+LABELS = {
+    "reactive": "reactive",
+    "wm": "wm (hand MPC)",
+    "learned": "learned (stacked memory)",
+    "learned-rnn": "learned (LSTM memory)",
+}
 
 
 def _save_plot(rows) -> None:
@@ -103,43 +128,31 @@ def _save_plot(rows) -> None:
     import matplotlib.pyplot as plt
 
     v = [r["v"] for r in rows]
+    names = rows[0]["_names"]
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9, 3.6))
-    ax1.plot(
-        v,
-        [100 * r["crash_reactive"] for r in rows],
-        "o-",
-        color="tab:orange",
-        label="reactive",
-    )
-    ax1.plot(
-        v,
-        [100 * r["crash_wm"] for r in rows],
-        "o-",
-        color="tab:green",
-        label="wm (latent MPC)",
-    )
+    for name in names:
+        ax1.plot(
+            v,
+            [100 * r[f"crash_{name}"] for r in rows],
+            "o-",
+            color=COLORS.get(name, "tab:gray"),
+            label=LABELS.get(name, name),
+        )
+        ax2.plot(
+            v,
+            [r[f"clear_{name}"] for r in rows],
+            "o-",
+            color=COLORS.get(name, "tab:gray"),
+            label=LABELS.get(name, name),
+        )
     ax1.set_xlabel("cruise speed (m/s)")
     ax1.set_ylabel("crash rate (%)")
     ax1.set_title("Reaction is a distance budget")
-    ax1.legend(fontsize=8)
-    ax2.plot(
-        v,
-        [r["clear_reactive"] for r in rows],
-        "o-",
-        color="tab:orange",
-        label="reactive",
-    )
-    ax2.plot(
-        v,
-        [r["clear_wm"] for r in rows],
-        "o-",
-        color="tab:green",
-        label="wm (latent MPC)",
-    )
+    ax1.legend(fontsize=7)
     ax2.set_xlabel("cruise speed (m/s)")
     ax2.set_ylabel("mean min clearance (m)")
     ax2.set_title("Anticipation is a time budget")
-    ax2.legend(fontsize=8)
+    ax2.legend(fontsize=7)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     fig.tight_layout()
     fig.savefig(OUT, dpi=110)
@@ -157,12 +170,14 @@ def main() -> None:
     rows = sweep(speeds, n, args.seed0)
     _save_plot(rows)
     lo, hi = rows[0], rows[-1]
+    names = rows[0]["_names"]
+    lo_s = "/".join(f"{lo[f'crash_{k}']:.0%}" for k in names)
+    hi_s = "/".join(f"{hi[f'crash_{k}']:.0%}" for k in names)
     print(
-        f"SPEED-SWEEP OK: {n} single-pillar courses/speed — at {lo['v']:.1f} m/s "
-        f"crash reactive/wm = {lo['crash_reactive']:.0%}/{lo['crash_wm']:.0%}; "
-        f"at {hi['v']:.1f} m/s crash reactive/wm = "
-        f"{hi['crash_reactive']:.0%}/{hi['crash_wm']:.0%} — reaction pays a "
-        f"distance, anticipation pays time"
+        f"SPEED-SWEEP OK: {n} single-pillar courses/speed — crash "
+        f"({'/'.join(names)}) at {lo['v']:.1f} m/s = {lo_s}; at "
+        f"{hi['v']:.1f} m/s = {hi_s} — reaction pays a distance, "
+        f"anticipation pays time"
     )
     if args.selftest:
         assert (
