@@ -44,6 +44,7 @@
 | 27 | [一套飛行協定，到處重用](27-protocol.md) | $0 |
 | 28 | [解析器擂台（招牌反例，量化版）](28-parser-arena.md) | $0 |
 | 29 | [nano 世界模型：隱空間預測做預判式避障](29-world-model.md) | $0 |
+| 30 | [課程總結:你蓋出了什麼,數字說話](30-summary.md) | $0 |
 <!-- LESSON-TABLE:END -->
 
 > 🌐 Switch language: use the language selector at the top-right to switch to **English**.

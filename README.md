@@ -85,6 +85,7 @@ The **flight controller** keeps the drone from falling out of the sky (a hard re
 | **27** | Extract the flight protocol | $0 | One schema (`nanodrone.protocol`) reused everywhere |
 | **28** | Parser arena (counter-example) | $0 | When a general model + constraints beats training your own |
 | **29** | Nano world model (V-JEPA, on-board) | $0 | Predict the *next latent* at four horizons; at speed, the vision-only latent MPC crashes 10 % where reactive crashes 60 % (137 KB on-board budget) |
+| **30** | Course summary | $0 | The whole arc by the numbers, plus a graduation check that re-asserts the course's shared contracts |
 | **DroneVoice** | Apple app → on-device LLM → real drone | $0 sw | Fly by speaking from an iPhone (Phases 2–5; needs Apple hardware) |
 
 Each lesson follows the same five-part shape: **Why → Concept → Hands-on → Checkpoint → Going further.**

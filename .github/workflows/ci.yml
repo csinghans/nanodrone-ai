@@ -82,6 +82,9 @@ jobs:
       # locally, not in this torch-free smoke job. proactive_avoid is torch-free:
       - name: Lesson 29 — proactive vs reactive avoidance (selftest)
         run: python lessons/29_world_model/proactive_avoid.py --selftest
+      # Lesson 29's closed-loop/eval/sweep/learn steps load torch — local only.
+      - name: Lesson 30 — course graduation check (contracts, torch-free)
+        run: python lessons/30_summary/course_check.py --selftest
       - name: Bridge — DroneVoice sim server (selftest, headless)
         run: python bridge/sim_server.py --selftest
       - name: DroneVoice — protocol-stream conformance (selftest)

@@ -637,7 +637,7 @@ Takeoff
 - The L11–L16 backbone keeps its original ordering and dependency graph; **L15 is deliberately left blank** (swarm has been demoted to a Track D docs-only going-further, does not occupy a lesson number, and the number is not reused so as not to be confused with the "cut swarm"). L14 is split into L14a (mapping) / L14b (on-board convergence) to accommodate the added on-board gap. L16 keeps the graduation project's "last lesson" symbolic number.
 - The three deepening lines — perception depth, real-hardware landing, and the Apple product line — all use a **continuous new number range starting at L17**, not inserting numbers into L11–L16 (avoiding disturbing the already-stable dependency graph).
 - Phase 4/5 keep the "Phase" naming (consistent with phase 1–3, marking them as a bridge side-track rather than a main-line Lesson).
-- **L29** takes the next free lesson number as Track B's *predictive frontier*: new capabilities always take the next number rather than being inserted into the stable L11–L28 graph, so L29 is filed under Track B even though it is numbered after Track C's L27–L28. The generated DroneVoice docs page is renumbered `30-dronevoice.md` so L29 sorts before it.
+- **L29** takes the next free lesson number as Track B's *predictive frontier*: new capabilities always take the next number rather than being inserted into the stable L11–L28 graph, so L29 is filed under Track B even though it is numbered after Track C's L27–L28. The generated DroneVoice docs page is renumbered `31-dronevoice.md` so the numbered lessons (L29's world model and L30's course summary) sort before it.
 
 ## 6. Design trade-offs: which ideas got merged, and why swarm was cut
 
