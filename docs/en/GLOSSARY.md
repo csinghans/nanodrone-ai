@@ -1,4 +1,4 @@
-# Glossary — every term, in plain words
+# Glossary — the course's terms, in plain words
 
 Terms in the order you'll meet them. Each entry: what it is, and why this
 course cares.
@@ -17,6 +17,14 @@ course cares.
   flight controller's core, and Lesson 1's hover.
 - **Setpoint** — the "please be here / fly this fast" command the AI layer
   sends down to the flight controller.
+- **Waypoint** — a point in space the drone flies to; a route is just a list
+  of them. Lesson 1's square challenge is four waypoints.
+- **Yaw** — rotation about the vertical axis: which way the nose points,
+  without going anywhere. (Its siblings: pitch = nose up/down, roll = lean
+  left/right.)
+- **Body-frame vs world-frame** — "forward" as the *drone* sees it vs "east"
+  as the *map* sees it. Gamepad and voice commands arrive body-frame and are
+  converted before the flight controller sees them.
 - **State machine** — a mission written as named phases (Takeoff → Search →
   Land) with explicit rules for moving between them. Predictable, debuggable.
 - **Failsafe** — the phase every mission can jump to when something's wrong
@@ -36,6 +44,9 @@ course cares.
   flying.
 - **Policy** — any rule that maps what the drone senses to what it does next.
   Can be hand-written (if-then, cost functions) or learned (a network).
+- **Imitation learning** — learning a policy by copying recorded examples of
+  behaviour (state → action) instead of trial and error — Lesson 3's other
+  route to the same skill.
 - **Reinforcement learning (RL) / PPO** — learning a policy by trial and
   error against a *reward* instead of labels. PPO is the workhorse algorithm
   used here (Lessons 3, 19, 29).
@@ -43,6 +54,12 @@ course cares.
   Designing it is half the craft.
 - **Observation** — everything the policy is allowed to see at each step.
   What you put in it decides what can be learned.
+- **Keyword spotting (KWS)** — recognizing a small fixed set of spoken words
+  ("takeoff", "left") on-device — far smaller than full speech-to-text.
+  Lessons 9–10.
+- **MFCC** — the compact "fingerprint of a sound" fed to the voice model: a
+  tiny image of which frequencies were loud, when. What makes a nano KWS net
+  possible.
 - **AUC** — a 0.5-to-1 score for "does this detector rank dangers above
   non-dangers?" 0.5 = coin flip, 1.0 = perfect ranking.
 
@@ -62,6 +79,15 @@ course cares.
 
 ## Seeing and predicting
 
+- **HSV mask** — picking out pixels by colour in hue/saturation/value space
+  (steadier under lighting changes than raw RGB). Lesson 2 finds the target
+  this way.
+- **Contour / centroid** — the outline drawn around the mask's blob, and that
+  blob's centre pixel — the image-side answer to "where is it?".
+- **Bearing** — the left/right angle from the camera's centreline to the
+  target: the one number that turns "I see it" into "steer this way".
+- **Visual servoing** — steering straight off what the camera sees (keep the
+  target centred), no map in between — Lessons 6–8.
 - **Depth map** — an image where each pixel says "how far away". Lesson 17
   squeezes one out of a single ordinary camera.
 - **Optical flow** — how each pixel *moves* between frames; motion betrays

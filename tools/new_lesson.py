@@ -83,6 +83,8 @@ README_TEMPLATE = """\
 
 ---
 
+> **In one line:** TODO — one sentence a beginner can parse. · **Builds on:** L?
+
 ## Why
 
 TODO: what problem this lesson solves and why it matters.
@@ -115,6 +117,8 @@ TODO: a concrete, observable success condition.
 # Lesson %%NN%% — %%TITLE%%
 
 🌐 [English](#lesson-%%NN%%--%%ANCHOR%%) · **繁體中文**（以下）
+
+> **一句話：**TODO——一句新手看得懂的話。 · **建立在：**第 ? 課
 
 ## 為什麼
 

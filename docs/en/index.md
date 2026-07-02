@@ -14,7 +14,7 @@ start in simulation for free, graduate to a real Crazyflie that flies itself off
 <!-- LESSON-TABLE:START -->
 | Lesson | Topic | Cost |
 |--------|-------|------|
-| 0 | [Setup & project skeleton](00-overview.md) | $0 |
+| 0 | [Overview & project skeleton](00-overview.md) | $0 |
 | 1 | [Flight control basics (hover & waypoints)](01-hover.md) | $0 |
 | 2 | [Perception (seeing an obstacle)](02-perception.md) | $0 |
 | 3 | [Autonomous decision AI](03-autonomy-ai.md) | $0 |

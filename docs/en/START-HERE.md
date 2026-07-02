@@ -15,23 +15,27 @@ last step, not an entry fee.
 
 - A Mac with Apple Silicon (M1 or newer). That's it — **$0**.
 - No robotics or machine-learning background. Every lesson explains *why*
-  before *how*, and a [Glossary](GLOSSARY.md) covers every term in plain
-  words.
+  before *how*, and a [Glossary](GLOSSARY.md) covers the terms you'll meet
+  in plain words.
 
-## Your first flight (15 minutes)
+## Your first flight
 
 ```bash
 git clone https://github.com/csinghans/nanodrone-ai.git
 cd nanodrone-ai
+bash setup/install_macos.sh        # first time only: installs conda (skip if you have it)
 bash setup/install_env.sh          # one-time: conda env + simulator
 conda activate nanodrone-ai
-python lessons/01_hover/hover_demo.py
+python lessons/01_hover/hover_demo.py             # watch it fly
+python lessons/01_hover/hover_demo.py --selftest  # let the computer verify it
 ```
 
-A window opens, a small quadcopter takes off and holds a steady hover at
-1 metre, and the terminal prints a line that starts with `HOVER OK`. That
-line is the course's habit: **every lesson ends with a checkpoint the
-computer verifies for you** — if the `OK` line prints, you did it right.
+The one-time install downloads a few gigabytes and can take a while; the
+flight itself is under a minute. A window opens, a small quadcopter takes
+off and holds a steady hover at 1 metre — and the second command re-flies
+it headless and prints a line that starts with `HOVER OK`. That line is
+the course's habit: **every lesson ends with a checkpoint the computer
+verifies for you** — if the `OK` line prints, you did it right.
 
 ## The map
 
@@ -42,10 +46,13 @@ your curiosity: every lesson's README starts with a one-line summary and a
 | Phase | Lessons | In plain words |
 |---|---|---|
 | **Fly, see, decide** | 1–10 | Hover, find things with the camera, learn your first behaviours, control by gamepad and by voice — the foundations. |
-| **Missions** | 11–16 | Turn single skills into whole missions with safety built in, ending in a graded capstone you design. |
+| **Missions** | 11–13, 14a, 16 | Turn single skills into whole missions with safety built in, ending in a graded capstone you design. |
 | **Onto the chip** | 14b, 17–22 | Depth from one camera, optical flow, obstacle-dodging by reinforcement learning — each squeezed into a model tiny enough for the drone's own chip. |
 | **The frontier** | 23–30 | Flight recorders, a $100 real-drone stepping stone, one command protocol for every drone, a nano *world model* that dodges obstacles before they're close — and the course summary. |
 | **Side quest** | DroneVoice | An iPhone app that flies the drone by voice, sharing the same command contract. |
+
+(You didn't miss Lesson 15 — there isn't one. Lesson 14 split into 14a,
+which belongs with the missions, and 14b, which opens the on-chip track.)
 
 Two rules carry the whole course, and you'll meet them everywhere:
 

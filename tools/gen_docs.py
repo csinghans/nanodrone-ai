@@ -64,8 +64,8 @@ def _strip_lang_lines(text: str) -> str:
     return "\n".join(ln for ln in text.splitlines() if "🌐" not in ln)
 
 
-# Lesson 0 is "setup" (no lesson folder); cost overrides keyed by number.
-SETUP = {"en": "Setup & project skeleton", "zh-TW": "環境建置與專案骨架"}
+# Lesson 0 is the overview page (no lesson folder); cost overrides keyed by number.
+SETUP = {"en": "Overview & project skeleton", "zh-TW": "總覽與專案骨架"}
 COST = {"04": {"en": "~US$545", "zh-TW": "約 US$545"}}
 HEADER = {
     "en": "| Lesson | Topic | Cost |\n|--------|-------|------|",

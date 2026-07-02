@@ -1,4 +1,4 @@
-# DroneVoice — the Apple app (Phases 2–4)
+# DroneVoice — Apple app & real drones
 
 🌐 **English** (below) · [跳到繁體中文](#中文)
 
@@ -56,9 +56,9 @@ These prove the protocol the app speaks is correct. Phase 5 (real drone) lives i
 ---
 
 <a name="中文"></a>
-# DroneVoice — Apple App（Phase 2–4）
+# DroneVoice — Apple App 與真機
 
-🌐 [English](#dronevoice--the-apple-app-phases-24) · **繁體中文**（以下）
+🌐 [English](#dronevoice--apple-app--real-drones) · **繁體中文**（以下）
 
 > **這是 Xcode iOS app target，不是 Python 課。** 這裡的 Swift 檔是參考 scaffold ——
 > 在 Xcode 裡以單一 app module 編譯（跨檔型別在那裡解析；獨立編輯器會報錯）。本 repo 裡*可測*的，

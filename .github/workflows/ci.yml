@@ -36,8 +36,8 @@ jobs:
           pip install --no-deps \
             "gym-pybullet-drones @ git+https://github.com/utiasDSL/gym-pybullet-drones.git"
           pip install -e .   # the shared 'nanodrone' core that lessons import
-      - name: Lesson 1 — hover (headless)
-        run: python lessons/01_hover/hover_demo.py --headless
+      - name: Lesson 1 — hover (selftest)
+        run: python lessons/01_hover/hover_demo.py --selftest
       - name: Lesson 2 — perception (headless)
         run: python lessons/02_perception/perception_demo.py --headless
       - name: Lesson 5 — teleop flight loop (selftest, no pad/GUI)

@@ -4,7 +4,7 @@
 >
 > Beginner-friendly and step-by-step: start in simulation for $0, graduate to a real Crazyflie that flies itself fully offline.
 
-🚀 **Completely new here?** Read [**Start here**](docs/en/START-HERE.md) — the goal in one sentence, your first flight in 15 minutes, and the course map. Stuck on a word? The [Glossary](docs/en/GLOSSARY.md) explains everything in plain language.
+🚀 **Completely new here?** Read [**Start here**](docs/en/START-HERE.md) — the goal in one sentence, your first flight, and the course map. Stuck on a word? The [Glossary](docs/en/GLOSSARY.md) explains the course's terms in plain language.
 
 🌐 **Languages:** **English** · [繁體中文](README.zh-TW.md)
 
@@ -86,7 +86,7 @@ The **flight controller** keeps the drone from falling out of the sky (a hard re
 | **26** | Field-test SOP + regulations | $0 | A GO/NO-GO pre-flight gate + Taiwan CAA checklist |
 | **27** | Extract the flight protocol | $0 | One schema (`nanodrone.protocol`) reused everywhere |
 | **28** | Parser arena (counter-example) | $0 | When a general model + constraints beats training your own |
-| **29** | Nano world model (V-JEPA, on-board) | $0 | Predict the *next latent* at four horizons; at speed, the vision-only latent MPC crashes 10 % where reactive crashes 60 % (137 KB on-board budget) |
+| **29** | Nano world model (V-JEPA, on-board) | $0 | Predict the *next latent* at four horizons; a policy learned over it flies the whole 0.8–1.6 m/s sweep crash-free where reactive ends at 60 % (137 KB on-board budget) |
 | **30** | Course summary | $0 | The whole arc by the numbers, plus a graduation check that re-asserts the course's shared contracts |
 | **DroneVoice** | Apple app → on-device LLM → real drone | $0 sw | Fly by speaking from an iPhone (Phases 2–5; needs Apple hardware) |
 

@@ -15,7 +15,8 @@ course keeps coming back to:
     a fixed target. In later lessons this is where perception + a neural net
     will decide the target instead.
 
-Run:  python lessons/01_hover/hover_demo.py
+Run:       python lessons/01_hover/hover_demo.py
+Selftest:  python lessons/01_hover/hover_demo.py --selftest
 """
 
 import sys
@@ -46,9 +47,11 @@ except ImportError as exc:  # pragma: no cover - friendly beginner message
 START_POS = np.array([[0.0, 0.0, 0.1]])  # start near the ground
 TARGET_POS = np.array([0.0, 0.0, 1.0])  # hover target: 1 m straight up
 DURATION_SEC = 10  # how long to hover
+SELFTEST_SEC = 5  # selftest: enough time to climb and settle
+HOVER_TOL_M = 0.1  # "steady hover" = within 10 cm of the target
 
 
-def main(gui: bool = True) -> None:
+def main(gui: bool = True, duration_sec: int = DURATION_SEC) -> np.ndarray:
     env = CtrlAviary(
         drone_model=DroneModel.CF2X,  # the Crazyflie 2.x "X" frame
         num_drones=1,
@@ -62,7 +65,7 @@ def main(gui: bool = True) -> None:
 
     action = np.zeros((1, 4))  # 4 motor RPMs for 1 drone
     start = time.time()
-    total_steps = DURATION_SEC * env.CTRL_FREQ
+    total_steps = duration_sec * env.CTRL_FREQ
 
     for i in range(total_steps):
         # 1. Advance the physics with the latest motor command.
@@ -81,10 +84,29 @@ def main(gui: bool = True) -> None:
             env.render()
             sync(i, start, env.CTRL_TIMESTEP)
 
+    final_pos = obs[0][:3].copy()
     env.close()
-    print(f"Done: hovered at {TARGET_POS.tolist()} for {DURATION_SEC} s.")
+    print(f"Done: hovered at {TARGET_POS.tolist()} for {duration_sec} s.")
+    return final_pos
+
+
+def selftest() -> None:
+    """Headless hover + assert — the course's `XXX OK` habit starts here."""
+    final_pos = main(gui=False, duration_sec=SELFTEST_SEC)
+    err = abs(float(final_pos[2]) - float(TARGET_POS[2]))
+    assert (
+        err < HOVER_TOL_M
+    ), f"hover drifted: z={final_pos[2]:.2f} m, target {TARGET_POS[2]:.1f} m"
+    print(
+        f"HOVER OK: held z={final_pos[2]:.2f} m "
+        f"(target {TARGET_POS[2]:.1f} ± {HOVER_TOL_M} m) for {SELFTEST_SEC} s"
+    )
 
 
 if __name__ == "__main__":
-    # Pass --headless to run without a window (used by CI smoke tests).
-    main(gui="--headless" not in sys.argv)
+    # --selftest: headless short hover + height assert (what CI runs).
+    # --headless: the full demo without a window.
+    if "--selftest" in sys.argv:
+        selftest()
+    else:
+        main(gui="--headless" not in sys.argv)

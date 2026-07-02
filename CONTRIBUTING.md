@@ -56,9 +56,12 @@ Scaffold first, then fill it in — this keeps every lesson consistent and CI gr
 4. The docs-site lesson pages are **auto-generated** from your README by
    `tools/gen_docs.py` (the deploy runs it) — there's nothing separate to fill.
    The README is the single source of truth.
-5. **Add a demo GIF** (every lesson has one): add a render function to
-   `tools/render_media.py` that saves `assets/lessonNN.gif`, run
-   `python tools/render_media.py`, and check the README's embedded GIF shows it.
+5. **Add a demo GIF if it helps** (the foundation lessons 1–10 each have one;
+   from Lesson 11 on, the measured `XXX OK` scoreboard in the Checkpoint is
+   the demo): add a render function to `tools/render_media.py` that saves
+   `assets/lessonNN.gif`, run `python tools/render_media.py`, and check the
+   README's embedded GIF shows it — or drop the GIF line from the scaffolded
+   README.
 6. Paste the three snippets the scaffold prints:
    - the `nav:` entry in `mkdocs.yml`,
    - a learning-path row in **both** `README.md` and `README.zh-TW.md`,

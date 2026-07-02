@@ -4,6 +4,9 @@
 starting entirely in simulation (free) and ending with a real Crazyflie that
 flies itself offline.
 
+(Looking for the install steps? They live in [Start here](START-HERE.md) —
+two setup scripts, then your first flight.)
+
 ## The mental model
 
 Autonomy is a loop that runs forever: **sense → decide → act.**
@@ -17,7 +20,8 @@ Self-driving cars do exactly this. We shrink it onto a 27 g quadcopter.
 
 ## Why simulation first
 
-1. **It's free** — no hardware until Lesson 4.
+1. **It's free** — the whole required track runs in the simulator; real
+   hardware is an optional, clearly-priced step near the end (Track E).
 2. **It's safe** — a bug crashes a sprite, not a propeller into your hand.
 3. **It's fast** — train an AI over thousands of flights overnight.
 
@@ -38,7 +42,7 @@ in five phases:
 | Phase | Lessons | In plain words |
 |---|---|---|
 | Fly, see, decide | 1–10 | Hover, camera perception, first learned behaviours, gamepad + voice control |
-| Missions | 11–16 | Whole missions as guarded state machines, ending in a graded capstone |
+| Missions | 11–13, 14a, 16 | Whole missions as guarded state machines, ending in a graded capstone (no Lesson 15 — 14 split into 14a/14b) |
 | Onto the chip | 14b, 17–22 | Depth, optical flow, RL avoidance — each distilled small enough for the drone's own chip |
 | The frontier | 23–30 | Flight recorder, real-drone stepping stone, one shared protocol, the nano world model, the summary |
 | Side quest | DroneVoice | An iPhone app flying the drone by voice over the same protocol |

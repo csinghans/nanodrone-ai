@@ -28,7 +28,9 @@ And the signature move returns, at the frontier this time: the real V-JEPA is a
 billion-parameter model that needs an Orin-class GPU — it will **never** fit on a
 GAP8. So you don't download it; you **train your own nano version** under the
 512 KB int8 budget — and then you **close the loop**: a tiny latent MPC flies
-from the camera alone and dodges ~700 ms before a reactive controller does.
+from the camera alone, sees ~667 ms ahead, and triggers its dodge measurably
+earlier than a reactive controller (+243 ms mean over 70 courses, ~500 ms in
+the demo below).
 
 ## Concept
 
@@ -44,9 +46,9 @@ Four tiny networks, reusing the course's conv stack, all int8-able:
 - **Predictor** `g_φ`: `(z_t, action) → ẑ_{t+k}` at **four horizons**
   `k ∈ {4, 8, 16, 32}` steps (~83 / 167 / 333 / 667 ms at 48 Hz) — one shared
   trunk, one tiny residual head per horizon (`ẑ = z_t + Δ_k`, so "nothing
-  changes" is the free baseline). "Proactive" is a claim about *time*: a
-  controller that reacts ~700 ms early needs a model that predicts ~700 ms
-  ahead, not one fixed 167 ms hop. And every training rollout scales the whole
+  changes" is the free baseline). "Proactive" is a claim about *time*: to buy
+  back even a few hundred milliseconds of reaction, the model has to see all
+  the way out to ~667 ms, not one fixed 167 ms hop. And every training rollout scales the whole
   command set by a cruise-speed factor (0.6–1.6 m/s), so the heads learn
   danger *as a function of commanded speed* — that is what powers step 4c.
 - **Collision heads**: `ẑ_k → P(within 0.7 m within k steps)` *and*
@@ -335,7 +337,8 @@ did all of it. That is the lesson's closing argument.
 
 而招牌動作在前沿再現一次：真正的 V-JEPA 是十億參數、需要 Orin 級 GPU 的大模型，**永遠**塞不進
 GAP8。所以你不是下載它，而是在 512KB int8 預算內**訓練你自己的 nano 版**——然後**把迴路閉起來**：
-一個 tiny latent MPC 只靠相機飛行，比反應式控制器早 ~700ms 開始閃避。
+一個 tiny latent MPC 只靠相機飛行、看到 ~667ms 遠，觸發閃避的時間點可量測地早於反應式控制器
+（70 條航道平均 +243ms，下方 demo 裡約 500ms）。
 
 ## 概念
 
@@ -347,8 +350,8 @@ GAP8。所以你不是下載它，而是在 512KB int8 預算內**訓練你自�
   （下方實測：用全域池化時，不管怎麼監督，veer-ranking 都停在隨機；換帶狀池化後到 1.00。）
 - **Predictor** `g_φ`：`(z_t, action) → ẑ_{t+k}`，**四個 horizon** `k ∈ {4, 8, 16, 32}` 步
   （48Hz 下約 83 / 167 / 333 / 667 ms）——一個共享 trunk，每個 horizon 一顆小殘差 head
-  （`ẑ = z_t + Δ_k`，「什麼都不變」是免費基線）。「預判」是關於**時間**的宣稱：要提早 ~700ms
-  反應，模型就得預測 ~700ms 遠，而不是固定一跳 167ms。而且每條訓練 rollout 都把整組指令
+  （`ẑ = z_t + Δ_k`，「什麼都不變」是免費基線）。「預判」是關於**時間**的宣稱：想買回哪怕
+  幾百毫秒的反應時間，模型就得看到 ~667ms 遠，而不是固定一跳 167ms。而且每條訓練 rollout 都把整組指令
   乘上一個巡航速度倍率（0.6–1.6 m/s），讓 heads 學會「危險是指令速度的函數」——這正是
   step 4c 的動力來源。
 - **Collision heads**：`ẑ_k → P(k 步內進入 0.7m)` **與** `P(k 步內進入 0.35m)`——每個 horizon

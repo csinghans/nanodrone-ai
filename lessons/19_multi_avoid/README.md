@@ -14,7 +14,9 @@ avoidance is many obstacles, different every time. To generalize, the policy has
 to *see* the obstacles: this randomizes 1–3 pillars per episode **and feeds the
 nearest obstacle's relative position into the observation**. That's exactly the
 slot where Lesson 17's learned depth would supply the obstacle cue on hardware —
-perception now drives decision.
+perception now drives decision. (Lesson 29 step 6 closes this loop for real:
+the same PPO recipe, flying on the world model's *vision-only* collision
+probabilities instead of the privileged position.)
 
 ## Concept
 
@@ -56,6 +58,8 @@ smoke run — train for ~300k to get a policy that actually clears random layout
 
 - Feed Lesson 17's depth (nearest-obstacle bearing/range) as the obstacle cue
   instead of the privileged position — true on-board perception → control.
+  Lesson 29 step 6 ships exactly this move (PPO over the world model's
+  collision heads) and measures it.
 - Add a curriculum: start with 1 pillar, raise to 3 as success climbs.
 - This avoidance policy is one of the teachers Lesson 22 distills into a single
   on-board network.
@@ -74,7 +78,8 @@ smoke run — train for ~300k to get a policy that actually clears random layout
 Lesson 3 的 RL 繞**一根**固定位置的柱子飛 —— 所以光靠無人機自己的位置就能背出那條繞道（它自己的註解就這麼說）。
 真實避障是很多障礙、每次都不同。要泛化，policy 得*看見*障礙：這一課每回合隨機 1–3 根柱子，
 **並把最近障礙的相對位置併入觀測**。那正是 Lesson 17 學到的深度在真機上提供障礙線索的位置 ——
-感知開始驅動決策。
+感知開始驅動決策。（Lesson 29 step 6 真正把這個迴路閉上了：同一套 PPO 配方，改飛世界模型
+*純視覺*的碰撞機率，不再用特權位置。）
 
 ## 概念
 
@@ -111,5 +116,6 @@ MULTI-AVOID OK: obs adds obstacle dims (72->74), trained 2000 steps, eval 0/4 re
 ## 延伸
 
 - 用 Lesson 17 的深度（最近障礙 bearing/距離）當障礙線索，取代特權位置 —— 真正的板載感知 → 控制。
+  Lesson 29 step 6 出貨的正是這一步（在世界模型的 collision heads 上跑 PPO），並且量測了它。
 - 加 curriculum：從 1 根柱子開始，成功率上升後加到 3 根。
 - 這個避障 policy 是 Lesson 22 蒸餾成單一板載網路的 teacher 之一。

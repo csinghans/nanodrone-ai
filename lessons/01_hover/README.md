@@ -26,6 +26,10 @@ The script `hover_demo.py` is the smallest possible version of this loop.
 
 ## Hands-on
 
+New here? Set up the environment first — the root README's
+[Quickstart](../../README.md#quickstart-lesson-0) installs conda, the
+`nanodrone-ai` env and the simulator in one script.
+
 ```bash
 conda activate nanodrone-ai
 python lessons/01_hover/hover_demo.py
@@ -39,6 +43,16 @@ The three steps inside the loop are the heartbeat of every autonomous system:
 
 - A PyBullet window opens and a small quadcopter rises to ~1 m and holds steady.
 - The terminal prints `Done: hovered at [0.0, 0.0, 1.0] for 10 s.`
+- Then let the computer verify it — every lesson in this course ends with a
+  script that *asserts* its own result and prints an `OK` line:
+
+```bash
+python lessons/01_hover/hover_demo.py --selftest
+```
+
+```
+HOVER OK: held z=1.00 m (target 1.0 ± 0.1 m) for 5 s
+```
 
 If the window doesn't open, run `python lessons/01_hover/hover_demo.py --headless`
 to confirm the physics runs without graphics, then troubleshoot the GUI.
@@ -74,6 +88,9 @@ to confirm the physics runs without graphics, then troubleshoot the GUI.
 
 ## 動手做
 
+第一次來？先把環境建好——root README 的[快速開始](../../README.zh-TW.md#快速開始lesson-0)
+用一支腳本裝好 conda、`nanodrone-ai` 環境與模擬器。
+
 ```bash
 conda activate nanodrone-ai
 python lessons/01_hover/hover_demo.py
@@ -85,6 +102,16 @@ python lessons/01_hover/hover_demo.py
 
 - 跳出 PyBullet 視窗，一台小四旋翼升到約 1 公尺並穩定懸停。
 - 終端機印出 `Done: hovered at [0.0, 0.0, 1.0] for 10 s.`
+- 接著讓電腦替你驗證——這門課的每一課，結尾都有一支會*自我斷言*結果、印出
+  `OK` 行的腳本：
+
+```bash
+python lessons/01_hover/hover_demo.py --selftest
+```
+
+```
+HOVER OK: held z=1.00 m (target 1.0 ± 0.1 m) for 5 s
+```
 
 若視窗沒跳出，先跑 `python lessons/01_hover/hover_demo.py --headless` 確認物理運算本身正常（不畫圖），再排查 GUI 問題。
 

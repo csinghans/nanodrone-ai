@@ -6,7 +6,7 @@
 
 ---
 
-> **In one line:** Plug in a game controller and fly the simulated drone yourself — stick time that shows how much the AI was doing for you. · **Builds on:** L4
+> **In one line:** Plug in a game controller and fly the simulated drone yourself — stick time that shows how much the AI was doing for you. · **Builds on:** L1
 
 ## Why
 
@@ -87,7 +87,7 @@ python lessons/05_teleop/teleop_xbox.py --input selftest
 
 🌐 [English](#lesson-5-bonus--fly-it-yourself-with-an-xbox-controller) · **繁體中文**（以下）
 
-> **一句話：**接上遊戲手把親自開模擬無人機，練出飛行手感，也體會 AI 之前幫你做了多少事。 · **建立在：**第 4 課
+> **一句話：**接上遊戲手把親自開模擬無人機，練出飛行手感，也體會 AI 之前幫你做了多少事。 · **建立在：**第 1 課
 
 ## 為什麼
 

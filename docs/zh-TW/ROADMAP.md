@@ -19,7 +19,7 @@
 後續課程整併成五條軌道：
 
 - **Track A — 編排主線（Orchestration）**：L11 狀態機骨幹 → L12 語音驅動轉移 → L13 多模態 mini-capstone → L16 畢業專題。這是所有走主線新手的必經路徑。
-- **Track B — 板載落地與感知深化（On-device / perception depth）**：L14a 建圖巡邏 → L14b 板載收斂；再往深處走 L17 單目深度 → L18 光流／VO → L19 多障礙 RL（餵感知）→ L20 域隨機化 → L21 蒸餾+壓縮 → L22 多能力蒸餾成單一板載策略。這條把「模擬器目前閒置的能力」逐步榨成自訓 int8 小模型，是招牌主題的深化主幹，也是把課程**貼近真機**而非帶離真機的關鍵。L29 再為本軌收尾，把這條線從*反應式*推進到*預判式*——且已閉環：nano V-JEPA 世界模型預測四個 horizon 的警戒／臨界碰撞環（而非像素），由 12Hz 純視覺 latent MPC 飛行——1.4–1.6 m/s 下反應式基線在單柱航道墜機 40–60%，會預判的 MPC 壓在 0–10%，板載預算 137KB。
+- **Track B — 板載落地與感知深化（On-device / perception depth）**：L14a 建圖巡邏 → L14b 板載收斂；再往深處走 L17 單目深度 → L18 光流／VO → L19 多障礙 RL（餵感知）→ L20 域隨機化 → L21 蒸餾+壓縮 → L22 多能力蒸餾成單一板載策略。這條把「模擬器目前閒置的能力」逐步榨成自訓 int8 小模型，是招牌主題的深化主幹，也是把課程**貼近真機**而非帶離真機的關鍵。L29 再為本軌收尾，把這條線從*反應式*推進到*預判式*——且已閉環：nano V-JEPA 世界模型預測四個 horizon 的警戒／臨界碰撞環（而非像素），由 12Hz 純視覺 latent MPC 飛行——1.4–1.6 m/s 下反應式基線在單柱航道墜機 40–60%，會預判的手工 MPC 壓在 0–10%；皇冠成果更進一步：在同一個世界模型上*學出來*的策略（L29 step 6）把 0.8–1.6 m/s 整條掃描帶——150 條航道——一次都沒撞地飛完，全部壓在 137KB 板載預算內。
 - **Track C — DroneVoice Apple App（並行選修，需 Apple 硬體）**：L27 協定抽取（前置技術債）→ L28 解析評測擂台（反例對照組的量化地基）→ Phase 2 語音入口 → Phase 3 on-device LLM 解析（反例對照組）→ Phase 4 SwiftUI + 雙向遙測 + app failsafe → Phase 5 sim→真機（5a Tello 先、5b Crazyflie 收束）。無 iPhone 者皆有 100% 等價的 Python 驗收。
 - **Track D — 進階 going-further（純文件，不成課）**：swarm、追蹤魯棒性（卡爾曼）、segmentation 標資料等指路文件，給「想再往前」的人指路，不擋畢業。（感測器噪音／domain randomization 已升格為正式課 L20，從本軌移除。）
 - **Track E — 真機落地基礎設施（sim-to-real bring-up）**：L23 飛行黑盒子（遙測+回放）→ L24 Tello 平價真機踏腳石 → L25 sim-to-real 落差量測 → L26 實地測試 SOP + 台灣法規。這條把「會飛」變成「合法、安全、可回看、可上真機驗證地飛」，是主線／Track B 訓出的模型真正落地前的最後一哩。
@@ -584,6 +584,8 @@ Takeoff
 
 - **成本** $0（純 sim、自產序列）｜**難度** 進階｜**前置** L17（`TinyDronet`/`TinyDepthNet` conv 編碼器）、L18（雙幀時序概念）、L19（避障基線，用來做 proactive）、L21（蒸餾）、L4（int8 footprint 算術）
 
+*註——本節是實作前的藍圖，保留設計理由。出貨版遠大於此：四個網路（方位感知 encoder、多視野 predictor、警戒／臨界雙 collision head、danger-now head）、四個視野 k∈{4,8,16,32}、八支腳本、外加閉環與學習型策略的記分板。以課文 README 為準。*
+
 **為什麼**：目前每個模型都是*反應式*——L17 深度與 L19 RL 回答的都是「對*現在*已經很近的障礙怎麼辦」。高速下這太遲：加速度有上限的 27 克無人機，等柱子塞滿畫面根本轉不過來。**世界模型**補上*預判*：學會場景將如何變化，讓無人機對*即將*發生的事先動作——這正是 Track D 只指了路的前沿。天真的做法是預測下一張*影像*（擴散／像素生成）：既慢又幻想出控制器用不到的細節。本課走 **V-JEPA** 路線——預測下一個*隱空間 embedding*、絕不預測像素——招牌主題在前沿再現：真正的 V-JEPA 是 Orin 級的十億參數模型，永遠塞不進 GAP8，所以你訓練並蒸餾出自己的 *nano* 版，壓在 512KB 內。
 
 **概念**：三個小網路，全部沿用課程 conv stack、全部可 int8：**Encoder** `f_θ`（影像→64 維隱向量，L3 `TinyDronet.features`）、動作條件 **Predictor** `g_φ`（`(z_t,a_t)→ẑ_{t+k}`，小 MLP，預測*殘差*，於是「什麼都不變」是免費基線）、線性 **collision head**（`ẑ→P(k 步內太近)`——預判訊號）。隱空間預測不用像素 loss、也不塌縮，靠一個 stop-gradient 的 **EMA target encoder**（V-JEPA/BYOL）加 VICReg 式變異數護欄；loss 就是 `‖g_φ(f_θ(x_t),a_t) − sg(f_EMA(x_{t+k}))‖² + 變異數護欄 + BCE(collision)`。**V-JEPA vs 4D-GS（誠實對照）**：4D-GS 是顯式幾何世界模型——L14a 2D occupancy grid 的重量級 3D+時間表親；度量精準又擬真，但延遲隨 Gaussian 數擴張 → Orin 級，且外推時產生幾何 floater（像素幻覺的幾何版）。V-JEPA 用度量接地換到固定、可蒸餾、無幻覺的隱空間預測——這就是它在此當機上骨幹的原因，4D-GS 則留在延伸裡當*離線*監督。
@@ -595,7 +597,7 @@ Takeoff
 
 **驗收 ✅**：`WM-DATA OK` + `WORLD-MODEL OK` + `PROACTIVE OK` 綠（本機，因 trainer 載 torch——比照 L3/L8/L13）；兩支無 torch 的腳本（`gen_wm_dataset`、`proactive_avoid`）也在 CI 跑。
 
-**延伸**：(1) **把隱空間度量接地**——用 4D-GS *離線*（sim / Orin）產度量 occupancy，加一個 grounding loss 讓 `ẑ_{t+k}` 解碼成可碰撞檢測的距離，用 V-JEPA 的延遲換到 4D-GS 的接地（ICRA/CVPR 級貢獻）；(2) 把 `proactive_avoid` 的 privileged look-ahead 換成訓練好的 collision head（視覺閉環，誠實的 L13 fallback 慣例）；(3) 把預測的 time-to-collision 餵進 L19 的 RL 觀測，做出*學出來*的預判避障。誠實落差：完整 V-JEPA 2 / 4D-GS 是 Orin 級——這裡是在 GAP8 預算下教原理。
+**延伸**：(1) **把隱空間度量接地**——用 4D-GS *離線*（sim / Orin）產度量 occupancy，加一個 grounding loss 讓 `ẑ_{t+k}` 解碼成可碰撞檢測的距離，用 V-JEPA 的延遲換到 4D-GS 的接地（ICRA/CVPR 級貢獻）。原計畫的 (2)、(3) 兩項後來**以課文本體出貨**：閉環 MPC 已改用訓練好的 collision heads 飛行、不碰特權 look-ahead（step 4，`wm_closed_loop.py`）；在世界模型輸出上以 PPO 學出策略、取代手寫 cost（step 6，`learn_policy.py`）——尚餘的開放邊界（LSTM 的速度極端缺口、更長的記憶）記在課文自己的延伸裡。誠實落差：完整 V-JEPA 2 / 4D-GS 是 Orin 級——這裡是在 GAP8 預算下教原理。
 
 **復用**：L3 `train_cnn.py` 的 `TinyDronet.features` 當 encoder 骨幹（import，L4 模式）；L3/L17 `gen_dataset` 的 `CtrlAviary+DSLPIDControl` 取樣迴圈與 `env._getDroneImages` 擷取；L14a/L19 的多柱場景概念；L4 `quantize_cnn.py` 的 `n_params/1024` int8 footprint 檢查；`train_rl.py` 的 `_save_trajectory_plot` 俯視圖。誠實標為**課程首次**：EMA target encoder、隱空間（無像素）JEPA loss、動作條件殘差 predictor、變異數防塌縮護欄、未來碰撞 head、預判式避障度量——課程做過監督／RL／蒸餾，但從未做自監督隱空間預測。
 
