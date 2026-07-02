@@ -227,29 +227,48 @@ def run_episode(
     in_path: bool = True,
     speed: float = 1.0,
     solo: bool = False,
+    randomize: bool = False,
 ) -> dict:
     """Fly START -> GOAL_X once under `policy`. The same seed reproduces the
     same pillar course, so two policies can fly literally the same test.
     `in_path=False` gives a course that is safe if flown straight — the
     step-4b eval uses those to count false-positive evasions. `speed` scales
     the whole command set and `solo` strips the side clutter (the step-4c
-    sweep raises speed on single-pillar courses until reaction breaks)."""
+    sweep raises speed on single-pillar courses until reaction breaks).
+    `randomize=True` is step 5's unseen world: random pillar shape/colour,
+    0-2 steps of command latency, ±8 % actuation noise, and Lesson 20's fixed
+    appearance shift on every frame the *policy* sees (scoring keeps the true
+    geometry)."""
     rng = np.random.default_rng(scenario_seed)
     obs, _ = env.reset(seed=int(scenario_seed))
     cmd = VelCommander(make_ctrl(), env.CTRL_TIMESTEP)
     cmd.reset(obs[0][0:3])
-    pillars = spawn_pillars(env, rng, in_path=in_path, solo=solo)
+    pillars = spawn_pillars(env, rng, in_path=in_path, solo=solo, randomize=randomize)
     policy.begin(pillars)
     vecs = float(speed) * ACTION_VECS
+    lat = int(rng.integers(0, 3)) if randomize else 0
+    pending = [FORWARD] * max(lat, 1)  # executed command lags the decision
+    if randomize:
+        sys.path.insert(0, os.path.abspath(os.path.join(HERE, "..", "20_domain_rand")))
+        from randomize import shift_appearance
 
     state, a_id, trigger = obs[0], FORWARD, -1
     path, min_clear = [state[0:3].copy()], 9.0
     for t in range(tmax):
         if t % DECIDE_EVERY == 0:
-            a_id = policy.decide(grab_frame(env), state)
+            frame = grab_frame(env)
+            if randomize:  # the unseen camera: dimmer, noisier (Lesson 20)
+                shifted = shift_appearance(frame[None].astype(np.float32) / 255.0)
+                frame = (shifted[0] * 255.0).astype(np.uint8)
+            a_id = policy.decide(frame, state)
             if a_id != FORWARD and trigger < 0:
                 trigger = t
-        obs, _, _, _, _ = env.step(cmd.rpm(state, vecs[a_id]).reshape(1, 4))
+        pending.append(a_id)
+        a_exec = pending.pop(0) if lat else pending.pop()
+        v = vecs[a_exec]
+        if randomize:
+            v = v * (1.0 + rng.normal(0.0, 0.08, size=4))
+        obs, _, _, _, _ = env.step(cmd.rpm(state, v).reshape(1, 4))
         state = obs[0]
         path.append(state[0:3].copy())
         min_clear = min(min_clear, nearest_planar(state[0:2], pillars))

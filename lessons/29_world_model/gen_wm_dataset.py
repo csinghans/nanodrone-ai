@@ -123,14 +123,17 @@ def make_ctrl():
     return DSLPIDControl(drone_model=DroneModel.CF2X)
 
 
-def spawn_pillars(env, rng, in_path: bool, solo: bool = False):
+def spawn_pillars(env, rng, in_path: bool, solo: bool = False, randomize: bool = False):
     """Drop 2-3 visual pillars into a fresh (post-reset) arena and return their
     planar centres. `in_path=True` puts the first one in the forward corridor;
     otherwise all sit off to the sides. `solo=True` places ONLY the in-path
     pillar — the step-4c speed sweep uses it to test the anticipation-vs-
     reaction mechanism on a threat both policies can actually see (side-pillar
     clutter probes the FOV limit instead, and is measured separately).
-    Bodies are wiped by the next env.reset()."""
+    `randomize=True` draws each pillar's radius, height and colour (Lesson 20's
+    recipe: vary what a real scene would vary anyway). Monocular honesty:
+    radius variation makes apparent size an ambiguous distance cue — harder,
+    and real. Bodies are wiped by the next env.reset()."""
     import pybullet as p
 
     pillars = []
@@ -142,17 +145,24 @@ def spawn_pillars(env, rng, in_path: bool, solo: bool = False):
             px, py = float(rng.uniform(0.9, 2.6)), float(rng.uniform(0.9, 1.5))
             py *= 1.0 if rng.random() < 0.5 else -1.0
         pillars.append((px, py))
+        if randomize:
+            radius = float(rng.uniform(0.14, 0.22))
+            length = float(rng.uniform(1.0, 1.8))
+            base = np.array([0.80, 0.32, 0.22])
+            color = list(np.clip(base + rng.uniform(-0.3, 0.3, 3), 0.05, 1.0)) + [1]
+        else:
+            radius, length, color = 0.18, 1.4, [0.80, 0.32, 0.22, 1]
         vis = p.createVisualShape(
             p.GEOM_CYLINDER,
-            radius=0.18,
-            length=1.4,
-            rgbaColor=[0.80, 0.32, 0.22, 1],
+            radius=radius,
+            length=length,
+            rgbaColor=color,
             physicsClientId=env.CLIENT,
         )
         p.createMultiBody(
             baseMass=0,
             baseVisualShapeIndex=vis,
-            basePosition=[px, py, 0.7],
+            basePosition=[px, py, length / 2],
             physicsClientId=env.CLIENT,
         )
     return pillars
@@ -216,10 +226,17 @@ def _schedule(rng, length: int, passive: bool):
     return ids, seg
 
 
-def gen(n_rollouts: int, length: int, seed: int = 0) -> dict:
+def gen(n_rollouts: int, length: int, seed: int = 0, randomize: bool = False) -> dict:
     """Fly `n_rollouts` fresh intervention trials and return the raw sequences:
     frames (uint8), held commands, nearest-pillar distances, drone positions,
-    plus per-rollout metadata (pillar layout, per-step segment ids, in-path flag)."""
+    plus per-rollout metadata (pillar layout, per-step segment ids, in-path flag).
+
+    `randomize=True` is Lesson 20's recipe applied to the *plant* as well as
+    the scene: random pillar shape/colour, 0-2 control steps of command
+    latency, and ±8 % per-step actuation noise on the executed command. The
+    RECORDED action stays the clean commanded one — the model conditions on
+    intent, reality wobbles, and the labels come from where the drone really
+    went — which is precisely the robustness a deployed controller needs."""
     env = make_env()
     cmd = VelCommander(make_ctrl(), env.CTRL_TIMESTEP)
     rng = np.random.default_rng(seed)
@@ -240,18 +257,22 @@ def gen(n_rollouts: int, length: int, seed: int = 0) -> dict:
         cmd.reset(START)
         in_path[r] = r % 2 == 0
         speed[r] = rng.uniform(*SPEED_RANGE)
-        pillars = spawn_pillars(env, rng, in_path=bool(in_path[r]))
+        pillars = spawn_pillars(env, rng, in_path=bool(in_path[r]), randomize=randomize)
         pillars_meta[r, : len(pillars)] = pillars
         act_id[r], seg[r] = _schedule(rng, L, passive=(r % 3 == 2))
+        lat = int(rng.integers(0, 3)) if randomize else 0
 
         state = obs[0]
         for t in range(L):
             frames[r, t] = grab_frame(env)
             pos[r, t] = state[0:3]
             dists[r, t] = nearest_planar(state[0:2], pillars)
-            v_cmd = speed[r] * ACTION_VECS[act_id[r, t]]
-            actions[r, t] = v_cmd
-            obs, _, _, _, _ = env.step(cmd.rpm(state, v_cmd).reshape(1, 4))
+            actions[r, t] = speed[r] * ACTION_VECS[act_id[r, t]]  # the intent
+            # ... while the *executed* command may lag and wobble (randomize)
+            v_exec = speed[r] * ACTION_VECS[act_id[r, max(t - lat, 0)]]
+            if randomize:
+                v_exec = v_exec * (1.0 + rng.normal(0.0, 0.08, size=4))
+            obs, _, _, _, _ = env.step(cmd.rpm(state, v_exec).reshape(1, 4))
             state = obs[0]
         held = sorted({ACTION_NAMES[i] for i in act_id[r][seg[r] > 0]})
         print(
@@ -271,6 +292,7 @@ def gen(n_rollouts: int, length: int, seed: int = 0) -> dict:
         "pillars": pillars_meta,
         "in_path": in_path,
         "speed": speed,
+        "randomized": np.uint8(randomize),
         "horizons": np.array(HORIZONS, dtype=np.int16),
         "a_norm": A_NORM,
         "danger_r": np.float32(DANGER_R),
@@ -363,12 +385,14 @@ def main() -> None:
     ap.add_argument("--rollouts", type=int, default=32)
     ap.add_argument("--len", dest="length", type=int, default=120)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--randomize", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
     n_roll, length = (10, 100) if args.selftest else (args.rollouts, args.length)
 
-    print(f"[INFO] flying {n_roll} intervention rollouts x {length} steps ...")
-    data = gen(n_roll, length, seed=args.seed)
+    tag = " (randomized)" if args.randomize else ""
+    print(f"[INFO] flying {n_roll} intervention rollouts x {length} steps{tag} ...")
+    data = gen(n_roll, length, seed=args.seed, randomize=args.randomize)
     os.makedirs(os.path.dirname(OUT), exist_ok=True)
     np.savez_compressed(OUT, **data)
 

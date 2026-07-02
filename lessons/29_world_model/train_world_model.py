@@ -169,6 +169,23 @@ def ema_update(target: nn.Module, online: nn.Module, m: float) -> None:
         pt.mul_(m).add_(po.detach(), alpha=1.0 - m)
 
 
+def _augment(x: torch.Tensor) -> torch.Tensor:
+    """Train-time appearance DR: a torch port of Lesson 20's `randomize.jitter`
+    (brightness 0.5-1.5 + noise sigma<=0.18) plus a random 3x3 blur. Applied to
+    the frames the ONLINE encoder sees — never to the EMA target's frames, so
+    the JEPA targets stay stable while the encoder learns to shrug off
+    appearance."""
+    b = torch.empty(len(x), 1, 1, 1, device=x.device).uniform_(0.5, 1.5)
+    s = torch.empty(len(x), 1, 1, 1, device=x.device).uniform_(0.0, 0.18)
+    x = x * b + torch.randn_like(x) * s
+    blur = torch.rand(len(x), device=x.device) < 0.5
+    if bool(blur.any()):
+        xb = torch.nn.functional.avg_pool2d(x[blur], 3, stride=1, padding=1)
+        x = x.clone()
+        x[blur] = xb
+    return x.clamp(0.0, 1.0)
+
+
 def roc_auc(scores: np.ndarray, labels: np.ndarray) -> float:
     """Rank-based AUC (Mann-Whitney U); 0.5 = chance."""
     pos, neg = scores[labels > 0.5], scores[labels < 0.5]
@@ -286,9 +303,13 @@ def veer_ranking(data: dict, rolls, enc, pred, cheads, device) -> tuple:
     return float(correct.float().mean()), len(frames)
 
 
-def train(data: dict, epochs: int = 80, batch: int = 64, seed: int = 0) -> tuple:
+def train(
+    data: dict, epochs: int = 80, batch: int = 64, seed: int = 0, robust: bool = False
+) -> tuple:
     """Train the nano world model on a sequence-format dataset dict and return
-    (checkpoint dict, metrics dict). Callable from the eval harness."""
+    (checkpoint dict, metrics dict). Callable from the eval harness.
+    `robust=True` adds Lesson 20-style appearance augmentation to the online
+    encoder's frames (pair it with a `--randomize` dataset for step 5)."""
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
@@ -361,7 +382,7 @@ def train(data: dict, epochs: int = 80, batch: int = 64, seed: int = 0) -> tuple
         for i in range(0, len(order), batch):
             b = torch.tensor(order[i : i + batch]).to(device)
             opt.zero_grad()
-            z_t = enc(frames_at(base[b]))
+            z_t = enc(_augment(frames_at(base[b])) if robust else frames_at(base[b]))
             z_hat = pred(z_t, acts[base[b]])  # (B,H,D)
             with torch.no_grad():
                 z_tgt = torch.stack(
@@ -378,7 +399,7 @@ def train(data: dict, epochs: int = 80, batch: int = 64, seed: int = 0) -> tuple
                     c_hard[torch.randint(len(c_hard), (half,), device=device)],
                 ]
             )
-            z_c = enc(frames_at(cb))
+            z_c = enc(_augment(frames_at(cb)) if robust else frames_at(cb))
             z_cf = pred(z_c.repeat_interleave(n_a, dim=0), cands.repeat(len(z_c), 1))
             w = vis[cb].reshape(-1, 1, 1)  # unanswerable (frame, cand): no loss
             cf_loss = (
@@ -498,15 +519,19 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--epochs", type=int, default=80)
     ap.add_argument("--batch", type=int, default=64)
+    ap.add_argument("--robust", action="store_true")
     ap.add_argument("--selftest", action="store_true")
     args = ap.parse_args()
     epochs = 60 if args.selftest else args.epochs
 
     data = _load_or_make(args.selftest)
-    ckpt, m = train(data, epochs=epochs, batch=args.batch)
+    ckpt, m = train(data, epochs=epochs, batch=args.batch, robust=args.robust)
 
     # a selftest must not clobber a real trained checkpoint with its toy one
+    # (and a robust experiment gets its own file — see eval_robustness.py)
     out = MODEL.replace(".pth", "_selftest.pth") if args.selftest else MODEL
+    if args.robust and not args.selftest:
+        out = MODEL.replace(".pth", "_robust.pth")
     os.makedirs(os.path.dirname(out), exist_ok=True)
     torch.save(ckpt, out)
     auc_str = "/".join(f"{a:.2f}" for a in m["auc"])

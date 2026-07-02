@@ -127,6 +127,7 @@ python lessons/29_world_model/proactive_avoid.py                 # 3. the timing
 python lessons/29_world_model/wm_closed_loop.py                  # 4. closed loop from vision
 python lessons/29_world_model/eval_world_model_policy.py         # 4b. the cluttered scoreboard
 python lessons/29_world_model/speed_sweep.py                     # 4c. crash rate vs speed
+python lessons/29_world_model/eval_robustness.py                 # 5. the sim-to-real trap, priced
 ```
 
 Step 3 (`proactive_avoid.py`) isolates decision *timing* with privileged
@@ -215,6 +216,29 @@ the bottleneck (veer-ranking 1.00); the hand-crafted cost function is — eight
 planner configurations were measured to establish that, and it is exactly why
 *Going further* points at learned policies and memory.
 
+Step 5 prices the sim-to-real trap before hardware pays it: the shipped
+(clean-trained) model, measured on conditions it never saw — randomized pillar
+shapes/colours, 0–2 control steps of command latency, ±8 % actuation noise,
+and Lesson 20's fixed unseen appearance shift on every frame the policies see
+— then the Track B fix (`gen --randomize` + `train --robust`), trained across
+the variation:
+
+```
+ROBUST-WM OK: clean AUC@32=0.96 | randomized(+unseen-shift) AUC@32=0.82 (the gap to buy back), veer-ranking=1.00 (n=8)
+  closed loop under randomization: crash reactive 10% -> wm 17%, mean clearance 0.35 -> 0.37 m — latency + actuation noise + unseen appearance, danger signal still camera-only
+  --randomize + --robust retrain: randomized AUC@32=0.92, closed loop crash reactive 10% -> wm 30%, clearance 0.35 -> 0.33 m — train across the variation, not beside it
+```
+
+Two honest readings, both part of the lesson. The randomization recipe buys
+the *perception* gap back — 0.82 → 0.92 under the unseen shift — and the veer
+ranking survives everything. And the robust model, a strictly better
+*detector*, flies **worse** through the hand-crafted planner (30 % vs 17 %):
+the planner's margins were calibrated against the shipped model's probability
+floor, and retraining moved the floor. The refrain, one level up: **a better
+score is not a better flight** — the cost function is the bottleneck, so learn
+it (Lesson 19), and let Track E measure on hardware what randomization cannot
+model.
+
 ## Going further
 
 - **Learn the policy — the measured next step.** Eight hand-tuned planner
@@ -237,7 +261,8 @@ planner configurations were measured to establish that, and it is exactly why
   pillars), which is also why `climb` sits in the model's vocabulary but off the
   planner's menu. And this is a *nano distillation* of the V-JEPA idea — the
   real V-JEPA 2 is Orin-class; here we teach the principle under the GAP8
-  budget, then domain-randomize (Track B, L20) before any sim-to-real claim.
+  budget. Step 5 prices the randomization gap and ships the recipe that buys
+  it back; Track E measures what randomization cannot model, on hardware.
 
 ---
 
@@ -338,6 +363,7 @@ python lessons/29_world_model/proactive_avoid.py                 # 3. 決策時�
 python lessons/29_world_model/wm_closed_loop.py                  # 4. 純視覺閉環
 python lessons/29_world_model/eval_world_model_policy.py         # 4b. 雜訊場景記分板
 python lessons/29_world_model/speed_sweep.py                     # 4c. 墜機率 vs 速度
+python lessons/29_world_model/eval_robustness.py                 # 5. sim-to-real 陷阱標價
 ```
 
 Step 3（`proactive_avoid.py`）用 privileged 幾何隔離出決策*時機*——一張示意圖。Step 4 拆掉
@@ -411,6 +437,23 @@ SPEED-SWEEP OK: 30 single-pillar courses/speed — at 0.8 m/s crash reactive/wm 
 函數才是——這是量測了八種 planner 配置後確立的結論，也正是*延伸*指向「學出來的策略與記憶」
 的原因。
 
+Step 5 在硬體付錢之前先為 sim-to-real 陷阱標價：拿 shipped（clean 訓練）模型，在它沒見過的
+條件下量測——隨機柱形／顏色、0–2 步指令延遲、±8% 致動噪音、加上 Lesson 20 的固定「陌生相機」
+外觀偏移打在 policy 看到的每一幀上——然後展示 Track B 的解法（`gen --randomize` +
+`train --robust`）、讓模型「在變異之中」而非「在變異旁邊」訓練：
+
+```
+ROBUST-WM OK: clean AUC@32=0.96 | randomized(+unseen-shift) AUC@32=0.82 (the gap to buy back), veer-ranking=1.00 (n=8)
+  closed loop under randomization: crash reactive 10% -> wm 17%, mean clearance 0.35 -> 0.37 m — latency + actuation noise + unseen appearance, danger signal still camera-only
+  --randomize + --robust retrain: randomized AUC@32=0.92, closed loop crash reactive 10% -> wm 30%, clearance 0.35 -> 0.33 m — train across the variation, not beside it
+```
+
+兩個誠實讀法，都是課的一部分。域隨機化把**感知** gap 買回來了——陌生偏移下 0.82 → 0.92——
+而且 veer ranking 全程撐住。但那個嚴格更好的*偵測器*（robust 模型）過手寫 planner 飛得
+**更糟**（30% vs 17%）：planner 的 margin 是對 shipped 模型的機率地板校準的，重訓把地板
+移走了。同一句副歌、高一個八度：**分數更好不等於飛得更好**——瓶頸是 cost 函數，把它學出來
+（Lesson 19），再讓 Track E 在真機上量測隨機化模擬不了的部分。
+
 ## 延伸
 
 - **把策略學出來——量測指出的下一步。**本課為了閉環量測了八種手調 planner 配置；每修一個
@@ -426,5 +469,6 @@ SPEED-SWEEP OK: 30 single-pillar courses/speed — at 0.8 m/s crash reactive/wm 
 - **誠實的落差。**counterfactual oracle 之所以存在，是因為模擬器標籤本來就是 privileged 的；
   換成真實資料就回到只有 executed-action 監督、而且需要多得多的資料。danger 標籤是平面的
   （柱子只有視覺體），這也是為什麼 `climb` 在模型詞彙表裡、卻不在 planner 菜單上。而這是
-  V-JEPA 想法的 *nano 蒸餾版*——真正的 V-JEPA 2 是 Orin 級；這裡在 GAP8 預算下教原理，
-  且任何 sim-to-real 宣稱之前要先過域隨機化（Track B 的 L20）。
+  V-JEPA 想法的 *nano 蒸餾版*——真正的 V-JEPA 2 是 Orin 級；這裡在 GAP8 預算下教原理。
+  Step 5 為隨機化 gap 標了價、也附上買回它的 recipe；隨機化模擬不了的部分，由 Track E
+  在真機上量測。
