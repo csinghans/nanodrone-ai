@@ -55,10 +55,13 @@ measured on 100+ seeded courses:
 | the sim-to-real gap, priced then bought back | AUC 0.96 → 0.82 → **0.92** |
 | the honest tail (FOV blind side, cluttered) | **16 %** — memory's job, stated |
 
-And the meta-result that step 6 acts on: after eight measured planner
+And the meta-result step 6 acted on: after eight measured planner
 configurations, the *model* stopped being the bottleneck — the hand-written
-cost function is. So the policy is now being *learned* (PPO over the world
-model's outputs, with a one-second observation memory), not tuned.
+cost function was. So the policy was *learned* instead (PPO over the world
+model's outputs, with a one-second observation memory): the hand planner's
+cluttered-course tail closed from 17 % to **5 %**, and at 1.6 m/s the learned
+policy crashes **0 %** where reaction crashes 70 % — sixteen minutes of
+training against eight rounds of hand-tuning.
 
 ## Hands-on
 
@@ -86,9 +89,10 @@ every later lesson trusted.
 
 ## Going further — where this goes next
 
-- **Finish learning the policy (L29 step 6).** PPO over the world model's
-  warn/crit probabilities with stacked memory is training as this lesson
-  ships; a recurrent policy (GRU) is the elegant sibling.
+- **Push the learned policy further (L29 step 6).** The stacked-memory PPO
+  already beats the hand planner everywhere measured; a recurrent policy
+  (GRU) is the elegant sibling, and training it under step 5's randomization
+  is the next honest test.
 - **Cross the sim-to-real bridge (Track E).** The Crazyflie + AI-deck path is
   prepared, deliberately unspent: domain randomization priced the modelled
   gap; the unmodelled one is measured on hardware, with Lesson 26's SOP.
@@ -147,9 +151,10 @@ Lesson 29 把整門課指向的迴路閉上了。它的記分板,全部在 100+ 
 | sim-to-real gap:標價,然後買回 | AUC 0.96 → 0.82 → **0.92** |
 | 誠實的尾巴（FOV 盲側、雜訊航道） | **16%**——記憶的工作,明說 |
 
-還有 step 6 正在回應的後設結論:量測了八種 planner 配置之後,*模型*不再是瓶頸——手寫的
-cost 函數才是。所以策略現在是用**學的**（PPO 讀世界模型的輸出、帶一秒的觀測記憶),
-不是用調的。
+還有 step 6 已經回應的後設結論:量測了八種 planner 配置之後,*模型*不再是瓶頸——手寫的
+cost 函數才是。所以策略改用**學的**（PPO 讀世界模型的輸出、帶一秒的觀測記憶):手工 planner
+的雜訊尾巴從 17% 關到 **5%**,而 1.6 m/s 下學出來的策略在反應式墜 70% 的地方墜 **0%**——
+十六分鐘的訓練,對上八輪的手調。
 
 ## 動手做
 
@@ -174,8 +179,9 @@ COURSE OK: protocol 13 actions + schema | safety 4/4 failsafe verdicts + geofenc
 
 ## 延伸——接下來往哪走
 
-- **把策略學完（L29 step 6）。**PPO 讀世界模型的 warn/crit 機率、帶堆疊記憶,在本課出貨
-  時正在訓練;recurrent（GRU）策略是它優雅的孿生版。
+- **把學出來的策略推得更遠（L29 step 6）。**堆疊記憶的 PPO 已在所有量測項目上勝過手工
+  planner;recurrent（GRU）策略是它優雅的孿生版,而在 step 5 的隨機化條件下訓練它,
+  是下一個誠實的考驗。
 - **跨過 sim-to-real 的橋（Track E）。**Crazyflie + AI-deck 的路已鋪好、刻意還沒花掉:
   域隨機化為「模擬得出來的 gap」標了價;模擬不出來的那部分,拿 Lesson 26 的 SOP 上真機量。
 - **研究前沿。**用離線 4D-GS 把隱空間度量接地——一個等著你動手的 ICRA 級題目,而地基

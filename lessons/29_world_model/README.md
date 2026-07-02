@@ -130,6 +130,7 @@ python lessons/29_world_model/wm_closed_loop.py                  # 4. closed loo
 python lessons/29_world_model/eval_world_model_policy.py         # 4b. the cluttered scoreboard
 python lessons/29_world_model/speed_sweep.py                     # 4c. crash rate vs speed
 python lessons/29_world_model/eval_robustness.py                 # 5. the sim-to-real trap, priced
+python lessons/29_world_model/learn_policy.py                    # 6. learn the policy (~16 min)
 ```
 
 Step 3 (`proactive_avoid.py`) isolates decision *timing* with privileged
@@ -148,6 +149,13 @@ isolates anticipation. Step 4c then sweeps the cruise speed on single-pillar
 courses (the threat both policies can see): reaction triggers at a fixed
 *distance*, anticipation at a fixed *time* — raise the speed and only one of
 those budgets survives.
+
+Step 6 acts on the planner verdict: instead of tuning the cost function, PPO
+(Lesson 19's exact recipe — progress reward, crash penalty, nothing hand-shaped
+about danger) learns the policy from the world model's own outputs, with the
+last second of them stacked as memory — so a pillar that slides out of the 60°
+FOV stays in the observation. Same encoder, same heads, same harnesses; only
+the decision-maker is learned.
 
 Each script self-generates what it needs and runs on its own with `--selftest`.
 
@@ -215,8 +223,8 @@ triggers at a fixed *time* and holds 0–10 % with 2–3× the clearance at spee
 pays a 16 % crash tail there that the privileged-direction baseline does not —
 while keeping zero false evasions and a +2 % time cost. The model is no longer
 the bottleneck (veer-ranking 1.00); the hand-crafted cost function is — eight
-planner configurations were measured to establish that, and it is exactly why
-*Going further* points at learned policies and memory.
+planner configurations were measured to establish that, and step 6 acts on it:
+the *learned* policy closes the tail to 5 %.
 
 Step 5 prices the sim-to-real trap before hardware pays it: the shipped
 (clean-trained) model, measured on conditions it never saw — randomized pillar
@@ -238,21 +246,35 @@ ranking survives everything. And the robust model, a strictly better
 the planner's margins were calibrated against the shipped model's probability
 floor, and retraining moved the floor. The refrain, one level up: **a better
 score is not a better flight** — the cost function is the bottleneck, so learn
-it (Lesson 19), and let Track E measure on hardware what randomization cannot
+it (step 6), and let Track E measure on hardware what randomization cannot
 model.
+
+Step 6 does exactly that — Lesson 19's PPO over the world model's outputs,
+with one second of stacked memory, and no hand-tuned danger weights anywhere
+(measured after 300k steps, ~16 minutes of training):
+
+```
+LEARNED-POLICY OK: 60 cluttered courses @ 0.8 m/s — crash reactive 2% / wm-mpc 17% / learned 5% (clearance 0.41 / 0.40 / 0.36 m)
+  single-pillar @ 1.6 m/s — crash reactive 70% / wm-mpc 8% / learned 0% — the cost function is learned, the world model is the same
+```
+
+The learned policy closes the hand planner's cluttered-course tail
+(**17 % → 5 %**, approaching the privileged-direction baseline's 2 % from
+vision alone) and dominates at speed (**0 %** where reaction crashes 70 %) —
+with the *same* world model underneath. Eight hand-tuned configurations
+couldn't do both at once; sixteen minutes of learning did. That is the
+lesson's closing argument.
 
 ## Going further
 
-- **Learn the policy — the measured next step.** Eight hand-tuned planner
-  configurations were measured for this lesson; each fixed one failure mode
-  and exposed the next. The model's rankings are perfect; the hand-crafted
-  cost is the bottleneck. Feed the per-horizon warn/crit probabilities into
-  Lesson 19's RL observation and let the avoidance policy be *learned* — that
-  is how the cluttered-course tail closes without whack-a-mole.
-- **Give the model memory.** Fixed-yaw translation leaves side threats outside
-  the 60° FOV (this lesson honestly masks those labels as unanswerable, and
-  step 4b prices the consequence at 16 %). A tiny GRU over `z_t`, or
-  yaw-aligned flight, would let the drone *remember* the pillar it just saw.
+- **A recurrent policy.** Step 6's memory is the simplest honest kind — the
+  last second of observations, stacked. A tiny GRU (via `sb3-contrib`'s
+  RecurrentPPO, a new dependency) would carry *longer* memory at lower cost,
+  and could live model-side over `z_t` instead of policy-side.
+- **Train the learned policy across the whole speed band and under
+  randomization.** Step 6 already randomizes cruise speed per episode; fold in
+  step 5's `randomize=True` conditions and re-run the 4c sweep with the
+  learned policy at every speed.
 - **Metric-ground the latent (research-grade).** Use **4D-GS offline** to
   produce geometry-consistent occupancy and add a geometry-grounded
   latent-prediction loss, so `ẑ_{t+k}` decodes to a collision-checkable
@@ -368,6 +390,7 @@ python lessons/29_world_model/wm_closed_loop.py                  # 4. 純視覺�
 python lessons/29_world_model/eval_world_model_policy.py         # 4b. 雜訊場景記分板
 python lessons/29_world_model/speed_sweep.py                     # 4c. 墜機率 vs 速度
 python lessons/29_world_model/eval_robustness.py                 # 5. sim-to-real 陷阱標價
+python lessons/29_world_model/learn_policy.py                    # 6. 把策略學出來（~16 分鐘）
 ```
 
 Step 3（`proactive_avoid.py`）用 privileged 幾何隔離出決策*時機*——一張示意圖。Step 4 拆掉
@@ -379,6 +402,11 @@ Step 3（`proactive_avoid.py`）用 privileged 幾何隔離出決策*時機*—�
 基線用同一顆 encoder——並且**刻意**拿到 privileged 的閃避方向：它只可能輸在時機上，比較因此
 把「預判」單獨隔離出來。Step 4c 再把巡航速度往上掃（單柱航道，威脅雙方都看得見）：反應式在
 固定*距離*觸發、預判在固定*時間*觸發——速度一拉高，只有一種預算撐得住。
+
+Step 6 對 planner 的裁決採取行動：不再調 cost 函數，改用 PPO（完全是 Lesson 19 的配方——
+前進獎勵、墜機懲罰，危險項沒有任何手工塑形）從世界模型自己的輸出學出策略，並把最近一秒的
+輸出堆疊成記憶——滑出 60° FOV 的柱子會在觀測裡多留一秒。同一顆 encoder、同一組 heads、
+同一套測試工具；只有「做決定的東西」是學出來的。
 
 每支腳本都自產所需資料，可用 `--selftest` 獨立執行。
 
@@ -438,8 +466,8 @@ SPEED-SWEEP OK: 30 single-pillar courses/speed — at 0.8 m/s crash reactive/wm 
 0–10%，高速下淨空還有 2–3 倍。**Step 4b 是誠實的極限**：雜訊航道的側柱位在 60–90° 方位、
 在前向相機 FOV 之外，無記憶的 planner 在那裡付出 16% 的墜機尾巴（拿了 privileged 方向的基線
 不用付）——但誤閃避保持零、時間成本 +2%。模型已經不是瓶頸（veer-ranking 1.00）；手寫 cost
-函數才是——這是量測了八種 planner 配置後確立的結論，也正是*延伸*指向「學出來的策略與記憶」
-的原因。
+函數才是——這是量測了八種 planner 配置後確立的結論，而 step 6 對它採取了行動：
+*學出來的*策略把尾巴關到 5%。
 
 Step 5 在硬體付錢之前先為 sim-to-real 陷阱標價：拿 shipped（clean 訓練）模型，在它沒見過的
 條件下量測——隨機柱形／顏色、0–2 步指令延遲、±8% 致動噪音、加上 Lesson 20 的固定「陌生相機」
@@ -456,17 +484,27 @@ ROBUST-WM OK: clean AUC@32=0.96 | randomized(+unseen-shift) AUC@32=0.82 (the gap
 而且 veer ranking 全程撐住。但那個嚴格更好的*偵測器*（robust 模型）過手寫 planner 飛得
 **更糟**（30% vs 17%）：planner 的 margin 是對 shipped 模型的機率地板校準的，重訓把地板
 移走了。同一句副歌、高一個八度：**分數更好不等於飛得更好**——瓶頸是 cost 函數，把它學出來
-（Lesson 19），再讓 Track E 在真機上量測隨機化模擬不了的部分。
+（step 6），再讓 Track E 在真機上量測隨機化模擬不了的部分。
+
+Step 6 正是這麼做的——Lesson 19 的 PPO 讀世界模型的輸出、帶一秒的堆疊記憶、任何地方都沒有
+手調的危險權重（300k 步、約 16 分鐘訓練後實測）：
+
+```
+LEARNED-POLICY OK: 60 cluttered courses @ 0.8 m/s — crash reactive 2% / wm-mpc 17% / learned 5% (clearance 0.41 / 0.40 / 0.36 m)
+  single-pillar @ 1.6 m/s — crash reactive 70% / wm-mpc 8% / learned 0% — the cost function is learned, the world model is the same
+```
+
+學出來的策略把手工 planner 的雜訊尾巴關掉（**17% → 5%**，純視覺就逼近拿 privileged 方向
+的基線的 2%），高速下更是完勝（反應式墜 70% 的地方它 **0%**）——底下是*同一個*世界模型。
+八種手調配置做不到兩者兼得；十六分鐘的學習做到了。這就是本課的結辯。
 
 ## 延伸
 
-- **把策略學出來——量測指出的下一步。**本課為了閉環量測了八種手調 planner 配置；每修一個
-  失效模式就暴露下一個。模型的排序已經完美，手寫 cost 才是瓶頸。把各 horizon 的 warn/crit
-  機率餵進 Lesson 19 的 RL 觀測、讓避障策略*被學出來*——雜訊航道的尾巴要這樣關，不是繼續
-  打地鼠。
-- **給模型記憶。**固定 yaw 的平移會讓側面威脅留在 60° FOV 之外（本課誠實地把那些標籤遮罩為
-  「答不了」，step 4b 把後果標成 16%）。在 `z_t` 上加一顆 tiny GRU、或改成 yaw 對齊速度的
-  飛法，無人機就能*記得*剛看過的柱子。
+- **Recurrent 策略。**Step 6 的記憶是最簡單誠實的那種——把最近一秒的觀測堆疊起來。
+  換成 tiny GRU（`sb3-contrib` 的 RecurrentPPO，需新增依賴）能用更低的成本帶*更長*的記憶，
+  也可以改放在模型側、直接架在 `z_t` 之上。
+- **讓學出來的策略吃滿整條速度帶與隨機化。**Step 6 已經每回合隨機抽巡航速度；把 step 5 的
+  `randomize=True` 條件疊進訓練，再用學出來的策略重跑 4c 的全速度掃描。
 - **把隱空間度量接地（研究級）。**用 **4D-GS 離線**產生幾何一致的 occupancy，加一個
   geometry-grounded latent-prediction loss，讓 `ẑ_{t+k}` 能解碼成可做碰撞檢測的距離——
   V-JEPA 的延遲換到 4D-GS 的接地。
