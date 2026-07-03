@@ -140,6 +140,13 @@ python lessons/01_hover/hover_demo.py
 - **[Bitcraze Crazyflie](https://www.bitcraze.io/)** —— Lesson 4 鎖定的開源硬體
   平台與 AI-deck。
 
+## 下一站
+
+課程已完結（v1.0）——哪些是核心課、哪些是進階課、哪些是 research preview，見
+[COURSE_COMPLETE.zh-TW.md](COURSE_COMPLETE.zh-TW.md)。想深入 micro-drone 世界模型、
+latent planning、sim-to-real 與板載部署？研究在
+[**microdrone-world-model**](https://github.com/csinghans/microdrone-world-model) 繼續。
+
 ## 授權
 
 [MIT](LICENSE)。

@@ -142,6 +142,14 @@ This course stands on the shoulders of these open-source projects:
 - **[Bitcraze Crazyflie](https://www.bitcraze.io/)** — the open hardware
   platform and AI-deck targeted in Lesson 4.
 
+## Where this goes next
+
+The course is complete (v1.0) — see [COURSE_COMPLETE.md](COURSE_COMPLETE.md)
+for what's core, what's advanced, and what's research preview. Want to go
+deeper into micro-drone world models, latent planning, sim-to-real, and
+on-device deployment? The research continues in
+[**microdrone-world-model**](https://github.com/csinghans/microdrone-world-model).
+
 ## License
 
 [MIT](LICENSE).

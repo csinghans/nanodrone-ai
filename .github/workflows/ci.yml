@@ -1,8 +1,12 @@
 name: CI
 
-# Manual trigger only: run from the Actions tab ("Run workflow") or via
+# Runs on every push to main and on every PR (the v1.0 freeze gate:
+# bug fixes / docs / CI only). Manual runs still work via the Actions tab or
 #   gh workflow run ci.yml
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 jobs:

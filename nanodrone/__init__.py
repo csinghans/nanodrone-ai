@@ -7,6 +7,8 @@ on them instead of copying:
   * view    — GUI camera + look (the chase cam from Lesson 7)
 """
 
+__version__ = "1.0.0"
+
 from .detect import (
     GREEN,
     ORANGE,

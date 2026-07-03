@@ -1,6 +1,6 @@
 # Roadmap — Lesson 10 之後的後續課程規劃
 
-> 本文件是這條後續課程的規劃藍圖 —— **L11–L29 與 DroneVoice 現已全部實作**（見各課資料夾與 `nanodrone/` 模組）。它延續 nanodrone-ai 的招牌主題與鐵則：全程 **$0、sim-first**，每課採 **五段式**（為什麼／概念／動手做／驗收／延伸），維護 **en + zh-TW 雙語 docs**，每支腳本都有 `--selftest` 印 `XXX OK` + assert。終極目標不變：GAP8 上 int8、<512KB 的離線板載自飛。
+> 本文件是這條後續課程的規劃藍圖 —— **L11–L30 與 DroneVoice 現已全部實作**（見各課資料夾與 `nanodrone/` 模組）。它延續 nanodrone-ai 的招牌主題與鐵則：全程 **$0、sim-first**，每課採 **五段式**（為什麼／概念／動手做／驗收／延伸），維護 **en + zh-TW 雙語 docs**，每支腳本都有 `--selftest` 印 `XXX OK` + assert。終極目標不變：GAP8 上 int8、<512KB 的離線板載自飛。
 
 ## 一、現況與設計原則
 
@@ -584,7 +584,7 @@ Takeoff
 
 - **成本** $0（純 sim、自產序列）｜**難度** 進階｜**前置** L17（`TinyDronet`/`TinyDepthNet` conv 編碼器）、L18（雙幀時序概念）、L19（避障基線，用來做 proactive）、L21（蒸餾）、L4（int8 footprint 算術）
 
-*註——本節是實作前的藍圖，保留設計理由。出貨版遠大於此：四個網路（方位感知 encoder、多視野 predictor、警戒／臨界雙 collision head、danger-now head）、四個視野 k∈{4,8,16,32}、八支腳本、外加閉環與學習型策略的記分板。以課文 README 為準。*
+*註——本節是實作前的藍圖，保留設計理由。出貨版遠大於此：四個網路（方位感知 encoder、多視野 predictor、警戒／臨界雙 collision head、danger-now head）、四個視野 k∈{4,8,16,32}、八支腳本、外加閉環與學習型策略的記分板。以課文 README 為準——研究在 [microdrone-world-model](https://github.com/csinghans/microdrone-world-model) 繼續。*
 
 **為什麼**：目前每個模型都是*反應式*——L17 深度與 L19 RL 回答的都是「對*現在*已經很近的障礙怎麼辦」。高速下這太遲：加速度有上限的 27 克無人機，等柱子塞滿畫面根本轉不過來。**世界模型**補上*預判*：學會場景將如何變化，讓無人機對*即將*發生的事先動作——這正是 Track D 只指了路的前沿。天真的做法是預測下一張*影像*（擴散／像素生成）：既慢又幻想出控制器用不到的細節。本課走 **V-JEPA** 路線——預測下一個*隱空間 embedding*、絕不預測像素——招牌主題在前沿再現：真正的 V-JEPA 是 Orin 級的十億參數模型，永遠塞不進 GAP8，所以你訓練並蒸餾出自己的 *nano* 版，壓在 512KB 內。
 

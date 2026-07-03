@@ -6,6 +6,12 @@
 
 > **In one line:** Train a small model that predicts how the scene will change, so the drone starts dodging before an obstacle gets close. · **Builds on:** L17, L18, L19, L21, L4
 
+> 🔭 **This lesson is the course's research preview.** It teaches the concepts —
+> latent prediction, collision heads, proactive avoidance — with measured
+> results. The deep dive (harder worlds, model-side memory, metric grounding,
+> real hardware) continues in
+> [**microdrone-world-model**](https://github.com/csinghans/microdrone-world-model).
+
 ## Why
 
 Every model so far has been *reactive*: the depth net (Lesson 17) and the RL
@@ -342,6 +348,10 @@ did all of it. That is the lesson's closing argument.
 🌐 [English](#lesson-29--nano-world-model-latent-space-prediction-for-proactive-avoidance) · **繁體中文**（以下）
 
 > **一句話：**訓練一個會預測畫面接下來怎麼變的小模型，讓無人機在障礙物逼近之前就提前閃開。 · **建立在：**第 17 課、第 18 課、第 19 課、第 21 課、第 4 課
+
+> 🔭 **本課是課程的 research preview。**它負責教會概念——隱空間預測、collision
+> head、預判式避障——並附上量測結果。深入研究（更難的世界、模型側記憶、度量接地、
+> 真機）在續作 [**microdrone-world-model**](https://github.com/csinghans/microdrone-world-model) 繼續。
 
 ## 為什麼
 

@@ -1,6 +1,6 @@
 # Roadmap — beyond Lesson 10
 
-> This document is the blueprint for the post-Lesson-10 course — **L11–L29 and DroneVoice are now all implemented** (see each lesson folder and the `nanodrone/` modules). It carries forward nanodrone-ai's signature themes and ground rules: everything stays **$0 and sim-first**, every lesson follows the **five-part structure** (Why / Concept / Hands-on / Checkpoint / Going further), the docs stay **bilingual (en + zh-TW)**, and every script ships a `--selftest` that prints `XXX OK` + asserts. The end goal is unchanged: int8 on GAP8, an offline on-board self-flight under 512KB.
+> This document is the blueprint for the post-Lesson-10 course — **L11–L30 and DroneVoice are now all implemented** (see each lesson folder and the `nanodrone/` modules). It carries forward nanodrone-ai's signature themes and ground rules: everything stays **$0 and sim-first**, every lesson follows the **five-part structure** (Why / Concept / Hands-on / Checkpoint / Going further), the docs stay **bilingual (en + zh-TW)**, and every script ships a `--selftest` that prints `XXX OK` + asserts. The end goal is unchanged: int8 on GAP8, an offline on-board self-flight under 512KB.
 
 ## 1. Status & design principles
 
@@ -584,7 +584,7 @@ Takeoff
 
 - **Cost** $0 (pure sim, self-produced sequences) | **Difficulty** advanced | **Prereqs** L17 (`TinyDronet`/`TinyDepthNet` conv encoder), L18 (two-frame temporal idea), L19 (avoidance to make proactive), L21 (distillation), L4 (int8 footprint arithmetic)
 
-*Note — this section is the pre-implementation blueprint, kept for the design rationale. The shipped lesson grew well past it: four nets (a bearing-aware encoder, a multi-horizon predictor, dual warn/crit collision heads, a danger-now head), four horizons k∈{4,8,16,32}, eight scripts, and closed-loop / learned-policy scoreboards. The lesson README is the source of truth.*
+*Note — this section is the pre-implementation blueprint, kept for the design rationale. The shipped lesson grew well past it: four nets (a bearing-aware encoder, a multi-horizon predictor, dual warn/crit collision heads, a danger-now head), four horizons k∈{4,8,16,32}, eight scripts, and closed-loop / learned-policy scoreboards. The lesson README is the source of truth — and the research continues in [microdrone-world-model](https://github.com/csinghans/microdrone-world-model).*
 
 **Why**: every model so far is *reactive* — L17 depth and L19 RL both answer "what about the obstacle that is close *now*." At speed that is too late: a 27 g drone with bounded acceleration cannot swerve once a pillar fills the frame. A **world model** adds *anticipation*: it learns how the scene will change and lets the drone act on what is *about to* happen — the frontier Track D only signposted. The naive build predicts the next *image* (diffusion / pixel generation): slow, and it hallucinates detail a controller cannot use. This lesson takes the **V-JEPA** route — predict the next *latent embedding*, never pixels — and the signature theme returns at the frontier: the real V-JEPA is an Orin-class billion-parameter model that will never fit GAP8, so you train and distil your own *nano* one under 512KB.
 

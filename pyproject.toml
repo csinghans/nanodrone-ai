@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "nanodrone"
-version = "0.1.0"
+version = "1.0.0"
 description = "Shared core for the nanodrone-ai course lessons"
 requires-python = ">=3.10"
 # Runtime deps (numpy, opencv, pybullet, ...) come from the conda env, so we

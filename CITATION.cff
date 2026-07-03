@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use this course or its measured baselines, please cite it as below."
+title: "nanodrone-ai: a sim-first, on-device autonomy course for 27 g micro-drones"
+authors:
+  - family-names: "Chen"
+    given-names: "Hans"
+version: 1.0.0
+date-released: 2026-07-03
+license: MIT
+repository-code: "https://github.com/csinghans/nanodrone-ai"
+url: "https://csinghans.github.io/nanodrone-ai/"
+abstract: >-
+  A bilingual (English / Traditional Chinese) 30-lesson open-source course
+  that teaches on-device AI autonomy for nano-drones: from a first simulated
+  hover to a nano V-JEPA-style latent world model that anticipates collisions
+  before they happen, under a 512 KB int8 on-board budget. Every lesson ships
+  a selftest that prints and asserts its own measured result.
+keywords:
+  - drones
+  - world-models
+  - embedded-ai
+  - reinforcement-learning
+  - education

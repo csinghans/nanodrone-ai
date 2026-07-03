@@ -44,7 +44,7 @@ in five phases:
 | Fly, see, decide | 1–10 | Hover, camera perception, first learned behaviours, gamepad + voice control |
 | Missions | 11–13, 14a, 16 | Whole missions as guarded state machines, ending in a graded capstone (no Lesson 15 — 14 split into 14a/14b) |
 | Onto the chip | 14b, 17–22 | Depth, optical flow, RL avoidance — each distilled small enough for the drone's own chip |
-| The frontier | 23–30 | Flight recorder, real-drone stepping stone, one shared protocol, the nano world model, the summary |
+| The frontier | 23–30 | Flight recorder, real-drone stepping stone, one shared protocol, the nano world model (research preview — deep dive continues in [microdrone-world-model](https://github.com/csinghans/microdrone-world-model)), the summary |
 | Side quest | DroneVoice | An iPhone app flying the drone by voice over the same protocol |
 
 The one-page quickstart and reading order live in [Start here](START-HERE.md);
